@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <style>
+      .admin-shell {
+        width: min(980px, calc(100% - 32px));
+        margin: 24px auto;
+      }
+
+      .admin-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .reports-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .login-box {
+        display: grid;
+        gap: 12px;
+        width: min(420px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 18px;
+        background: white;
+      }
+
+      .admin-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .report-card {
+        display: grid;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: white;
+      }
+
+      .report-card.reviewed {
+        opacity: 0.72;
+      }
+
+      .report-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .secondary-action {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        cursor: pointer;
+        color: #29362f;
+        background: #edf3ef;
+        font-weight: 800;
+      }
+
+      .danger-action {
+        color: white;
+        background: var(--danger);
+      }
+
+      .report-card strong {
+        font-size: 1rem;
+      }
+
+      .report-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header class="admin-header">
+        <div>
+          <p class="eyebrow">Black_knight Admin</p>
+          <h1 style="max-width: none; font-size: 2.4rem;">Reports</h1>
+        </div>
+        <div class="admin-actions">
+          <button id="refreshBtn" class="primary-action" type="button">Refresh</button>
+          <button id="logoutBtn" class="primary-action" type="button">Logout</button>
+        </div>
+      </header>
+
+      <form id="loginForm" class="login-box">
+        <label>
+          Admin password
+          <input id="passwordInput" type="password" placeholder="Enter admin password" />
+        </label>
+        <button class="primary-action" type="submit">Login</button>
+        <p id="loginError" style="margin: 0; color: var(--danger);"></p>
+      </form>
+
+      <section id="reportsList" class="reports-list panel" style="padding: 14px;">
+        <div class="empty-state">Loading reports...</div>
+      </section>
+    </main>
+
+    <script>
+      const loginForm = document.querySelector("#loginForm");
+      const passwordInput = document.querySelector("#passwordInput");
+      const loginError = document.querySelector("#loginError");
+      const reportsList = document.querySelector("#reportsList");
+      const refreshBtn = document.querySelector("#refreshBtn");
+      const logoutBtn = document.querySelector("#logoutBtn");
+
+      function setLoggedIn(loggedIn) {
+        loginForm.style.display = loggedIn ? "none" : "grid";
+        reportsList.style.display = loggedIn ? "grid" : "none";
+        refreshBtn.style.display = loggedIn ? "inline-block" : "none";
+        logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatDate(value) {
+        return new Intl.DateTimeFormat(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(value));
+      }
+
+      let currentReports = [];
+
+      function renderReports(reports) {
+        currentReports = reports;
+
+        if (!reports.length) {
+          reportsList.innerHTML = '<div class="empty-state">No reports yet.</div>';
+          return;
+        }
+
+        reportsList.innerHTML = reports
+          .map(
+            (report) => `
+              <article class="report-card ${report.status === "reviewed" ? "reviewed" : ""}">
+                <strong>${escapeHtml(report.matchName)}</strong>
+                <p style="margin: 0;">${escapeHtml(report.reason)}</p>
+                <div class="report-meta">
+                  <span class="live-dot">${escapeHtml(report.status || "open")}</span>
+                  <span class="live-dot">${escapeHtml(report.mode)}</span>
+                  <span class="live-dot">By ${escapeHtml(report.reporterName)}</span>
+                  <span class="live-dot">Reported ${escapeHtml(report.matchContactMasked || "unverified legacy")}</span>
+                  <span class="live-dot">${formatDate(report.createdAt)}</span>
+                </div>
+                <div class="report-actions">
+                  <button class="secondary-action" type="button" data-action="review" data-id="${escapeHtml(report.id)}">
+                    Mark reviewed
+                  </button>
+                  <button class="secondary-action danger-action" type="button" data-action="ban" data-id="${escapeHtml(report.id)}">
+                    Ban verified user
+                  </button>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      async function loadReports() {
+        reportsList.innerHTML = '<div class="empty-state">Loading reports...</div>';
+        const response = await fetch("/api/reports");
+        if (response.status === 401) {
+          setLoggedIn(false);
+          return;
+        }
+        renderReports(await response.json());
+      }
+
+      async function checkLogin() {
+        const response = await fetch("/api/admin/me");
+        const data = await response.json();
+        setLoggedIn(data.loggedIn);
+        if (data.loggedIn) {
+          loadReports();
+        }
+      }
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        loginError.textContent = "";
+
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: passwordInput.value }),
+        });
+
+        if (!response.ok) {
+          loginError.textContent = "Wrong password.";
+          return;
+        }
+
+        passwordInput.value = "";
+        setLoggedIn(true);
+        loadReports();
+      });
+
+      logoutBtn.addEventListener("click", async () => {
+        await fetch("/api/admin/logout", { method: "POST" });
+        setLoggedIn(false);
+      });
+
+      refreshBtn.addEventListener("click", loadReports);
+
+      reportsList.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+
+        const report = currentReports.find((item) => item.id === button.dataset.id);
+        if (!report) return;
+
+        if (button.dataset.action === "review") {
+          await fetch(`/api/reports/${encodeURIComponent(report.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "reviewed" }),
+          });
+          loadReports();
+        }
+
+        if (button.dataset.action === "ban") {
+          const banTarget = report.matchContactMasked || report.matchName;
+          const confirmed = window.confirm(`Ban "${banTarget}"?`);
+          if (!confirmed) return;
+
+          await fetch("/api/bans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: report.matchName,
+              contact: report.matchContact,
+              reason: report.reason,
+            }),
+          });
+
+          await fetch(`/api/reports/${encodeURIComponent(report.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "reviewed" }),
+          });
+
+          loadReports();
+        }
+      });
+
+      checkLogin();
+    </script>
+  </body>
+</html>
