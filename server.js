@@ -10,6 +10,7 @@ const {
   updateReportStatus,
   listBans,
   saveBan,
+  deleteBan,
   usingPostgres,
 } = require("./db");
 
@@ -19,6 +20,9 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "blackknight123";
+const TURN_URL = process.env.TURN_URL || "";
+const TURN_USERNAME = process.env.TURN_USERNAME || "";
+const TURN_PASSWORD = process.env.TURN_PASSWORD || "";
 const adminSessions = new Set();
 const users = new Map();
 const waiting = new Set();
@@ -224,8 +228,35 @@ app.get("/api/admin/me", (request, response) => {
   response.json({ loggedIn: isAdmin(request) });
 });
 
+app.get("/api/config", (request, response) => {
+  response.json({
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      ...(TURN_URL && TURN_USERNAME && TURN_PASSWORD
+        ? [{ urls: TURN_URL, username: TURN_USERNAME, credential: TURN_PASSWORD }]
+        : []),
+    ],
+  });
+});
+
 app.get("/api/reports", requireAdmin, async (request, response) => {
   response.json(await listReports());
+});
+
+app.get("/api/admin/stats", requireAdmin, async (request, response) => {
+  const reports = await listReports();
+  const bans = await listBans();
+  response.json({
+    onlineUsers: users.size,
+    waitingUsers: waiting.size,
+    openReports: reports.filter((report) => (report.status || "open") === "open").length,
+    totalReports: reports.length,
+    totalBans: bans.length,
+  });
+});
+
+app.get("/api/bans", requireAdmin, async (request, response) => {
+  response.json(await listBans());
 });
 
 app.patch("/api/reports/:id", requireAdmin, async (request, response) => {
@@ -276,6 +307,11 @@ app.post("/api/bans", requireAdmin, async (request, response) => {
     }
   }
 
+  response.json({ ok: true });
+});
+
+app.delete("/api/bans/:id", requireAdmin, async (request, response) => {
+  await deleteBan(request.params.id);
   response.json({ ok: true });
 });
 

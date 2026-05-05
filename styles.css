@@ -166,6 +166,18 @@ input {
   text-decoration: none;
 }
 
+.secondary-link {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px 16px;
+  color: var(--accent-dark);
+  background: #edf3ef;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+}
+
 .match-meta {
   display: flex;
   align-items: center;
@@ -183,6 +195,22 @@ input {
 
 .room-code strong {
   color: var(--ink);
+}
+
+.copy-code-btn {
+  display: none;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--accent-dark);
+  background: #edf3ef;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.copy-code-btn.visible {
+  display: inline-block;
 }
 
 .intro-copy {

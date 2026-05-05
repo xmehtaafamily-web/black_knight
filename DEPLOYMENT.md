@@ -17,6 +17,9 @@ Set these environment variables on your hosting platform:
 PORT=3000
 ADMIN_PASSWORD=your-strong-admin-password
 DATABASE_URL=postgres://user:password@host:5432/black_knight
+TURN_URL=turn:your-turn-host:3478
+TURN_USERNAME=your-turn-username
+TURN_PASSWORD=your-turn-password
 ```
 
 Most hosting platforms provide `PORT` automatically. If they do, do not override it.

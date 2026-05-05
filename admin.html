@@ -30,6 +30,34 @@
         gap: 10px;
       }
 
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .stat-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: white;
+      }
+
+      .stat-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .stat-card strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1.6rem;
+      }
+
       .login-box {
         display: grid;
         gap: 12px;
@@ -114,8 +142,14 @@
         <p id="loginError" style="margin: 0; color: var(--danger);"></p>
       </form>
 
+      <section id="statsGrid" class="stats-grid"></section>
+
       <section id="reportsList" class="reports-list panel" style="padding: 14px;">
         <div class="empty-state">Loading reports...</div>
+      </section>
+
+      <section id="bansList" class="reports-list panel" style="padding: 14px; margin-top: 14px;">
+        <div class="empty-state">Loading bans...</div>
       </section>
     </main>
 
@@ -124,12 +158,16 @@
       const passwordInput = document.querySelector("#passwordInput");
       const loginError = document.querySelector("#loginError");
       const reportsList = document.querySelector("#reportsList");
+      const bansList = document.querySelector("#bansList");
+      const statsGrid = document.querySelector("#statsGrid");
       const refreshBtn = document.querySelector("#refreshBtn");
       const logoutBtn = document.querySelector("#logoutBtn");
 
       function setLoggedIn(loggedIn) {
         loginForm.style.display = loggedIn ? "none" : "grid";
         reportsList.style.display = loggedIn ? "grid" : "none";
+        bansList.style.display = loggedIn ? "grid" : "none";
+        statsGrid.style.display = loggedIn ? "grid" : "none";
         refreshBtn.style.display = loggedIn ? "inline-block" : "none";
         logoutBtn.style.display = loggedIn ? "inline-block" : "none";
       }
@@ -151,6 +189,18 @@
       }
 
       let currentReports = [];
+      let currentBans = [];
+
+      function renderStats(stats) {
+        statsGrid.innerHTML = [
+          ["Online", stats.onlineUsers],
+          ["Waiting", stats.waitingUsers],
+          ["Open reports", stats.openReports],
+          ["Total bans", stats.totalBans],
+        ]
+          .map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`)
+          .join("");
+      }
 
       function renderReports(reports) {
         currentReports = reports;
@@ -188,6 +238,9 @@
       }
 
       async function loadReports() {
+        const statsResponse = await fetch("/api/admin/stats");
+        if (statsResponse.ok) renderStats(await statsResponse.json());
+
         reportsList.innerHTML = '<div class="empty-state">Loading reports...</div>';
         const response = await fetch("/api/reports");
         if (response.status === 401) {
@@ -195,6 +248,28 @@
           return;
         }
         renderReports(await response.json());
+
+        const bansResponse = await fetch("/api/bans");
+        if (bansResponse.ok) {
+          currentBans = await bansResponse.json();
+          bansList.innerHTML = currentBans.length
+            ? currentBans
+                .map(
+                  (ban) => `
+                    <article class="report-card">
+                      <strong>${escapeHtml(ban.contactMasked || ban.name || "Unknown")}</strong>
+                      <p style="margin: 0;">${escapeHtml(ban.reason || "Admin ban")}</p>
+                      <div class="report-actions">
+                        <button class="secondary-action" type="button" data-action="unban" data-id="${escapeHtml(ban.id)}">
+                          Unban
+                        </button>
+                      </div>
+                    </article>
+                  `,
+                )
+                .join("")
+            : '<div class="empty-state">No bans yet.</div>';
+        }
       }
 
       async function checkLogin() {
@@ -272,6 +347,13 @@
 
           loadReports();
         }
+      });
+
+      bansList.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action='unban']");
+        if (!button) return;
+        await fetch(`/api/bans/${encodeURIComponent(button.dataset.id)}`, { method: "DELETE" });
+        loadReports();
       });
 
       checkLogin();

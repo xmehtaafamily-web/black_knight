@@ -7,6 +7,7 @@ const messageTemplate = document.querySelector("#messageTemplate");
 const matchName = document.querySelector("#matchName");
 const matchStatus = document.querySelector("#matchStatus");
 const reconnectCode = document.querySelector("#reconnectCode");
+const copyCodeBtn = document.querySelector("#copyCodeBtn");
 const remoteLabel = document.querySelector("#remoteLabel");
 const cameraBtn = document.querySelector("#cameraBtn");
 const micBtn = document.querySelector("#micBtn");
@@ -29,8 +30,9 @@ let videoActive = false;
 let localStream = null;
 let peerConnection = null;
 let wasBanned = false;
+let activeReconnectCode = "";
 
-const rtcConfig = {
+let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
@@ -149,6 +151,18 @@ function startMatching() {
   socket.emit("join", currentUser);
 }
 
+async function loadRuntimeConfig() {
+  try {
+    const response = await fetch("/api/config");
+    const config = await response.json();
+    if (Array.isArray(config.iceServers) && config.iceServers.length) {
+      rtcConfig = { iceServers: config.iceServers };
+    }
+  } catch (error) {
+    rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  }
+}
+
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!currentUser || !currentMatch) {
@@ -206,9 +220,18 @@ blockBtn.addEventListener("click", () => {
 
 reportBtn.addEventListener("click", () => {
   if (!currentMatch) return;
-  const reason = window.prompt("Report reason", "Abusive or unsafe behavior");
+  const reason = window.prompt("Report reason: harassment, spam, nudity, underage, scam, or other", "Abusive or unsafe behavior");
   if (!reason) return;
   socket.emit("report", { matchId: currentMatch.id, matchName: currentMatch.name, reason });
+});
+
+copyCodeBtn?.addEventListener("click", async () => {
+  if (!activeReconnectCode) return;
+  await navigator.clipboard.writeText(activeReconnectCode);
+  copyCodeBtn.textContent = "Copied";
+  window.setTimeout(() => {
+    copyCodeBtn.textContent = "Copy reconnect code";
+  }, 1400);
 });
 
 socket.on("waiting", (payload) => {
@@ -224,8 +247,10 @@ socket.on("matched", (payload) => {
   updateMatchUI();
 
   if (payload.reconnectCode) {
+    activeReconnectCode = payload.reconnectCode;
     localStorage.setItem(storageKeys.reconnectCode, payload.reconnectCode);
     reconnectCode.innerHTML = `Reconnect code: <strong>${payload.reconnectCode}</strong> · /reconnect.html`;
+    copyCodeBtn?.classList.add("visible");
   }
 
   setSystemMessage(
@@ -307,4 +332,4 @@ socket.on("banned", (payload) => {
   setSystemMessage(payload.reason || "This profile has been banned.");
 });
 
-startMatching();
+loadRuntimeConfig().then(startMatching);

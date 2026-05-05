@@ -28,7 +28,7 @@ let videoActive = false;
 let localStream = null;
 let peerConnection = null;
 
-const rtcConfig = {
+let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
@@ -253,4 +253,16 @@ socket.on("match-ended", (payload) => {
 
 socket.on("report-saved", () => addMessage("System", "Report saved for admin review."));
 
-loadSavedReconnect();
+async function loadRuntimeConfig() {
+  try {
+    const response = await fetch("/api/config");
+    const config = await response.json();
+    if (Array.isArray(config.iceServers) && config.iceServers.length) {
+      rtcConfig = { iceServers: config.iceServers };
+    }
+  } catch (error) {
+    rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  }
+}
+
+loadRuntimeConfig().then(loadSavedReconnect);

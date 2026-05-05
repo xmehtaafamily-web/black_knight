@@ -169,6 +169,19 @@ async function saveBan(ban) {
   );
 }
 
+async function deleteBan(id) {
+  if (!pool) {
+    const bans = await listBans();
+    writeJson(
+      BANS_FILE,
+      bans.filter((ban) => ban.id !== id),
+    );
+    return;
+  }
+
+  await pool.query("DELETE FROM bans WHERE id = $1", [id]);
+}
+
 module.exports = {
   initDb,
   listReports,
@@ -176,5 +189,6 @@ module.exports = {
   updateReportStatus,
   listBans,
   saveBan,
+  deleteBan,
   usingPostgres: Boolean(pool),
 };
