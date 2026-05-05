@@ -8,7 +8,8 @@ const matchName = document.querySelector("#matchName");
 const matchStatus = document.querySelector("#matchStatus");
 const reconnectCode = document.querySelector("#reconnectCode");
 const remoteLabel = document.querySelector("#remoteLabel");
-const videoBtn = document.querySelector("#videoBtn");
+const cameraBtn = document.querySelector("#cameraBtn");
+const micBtn = document.querySelector("#micBtn");
 const skipBtn = document.querySelector("#skipBtn");
 const blockBtn = document.querySelector("#blockBtn");
 const reportBtn = document.querySelector("#reportBtn");
@@ -74,10 +75,11 @@ function updateMatchUI() {
 }
 
 function resetVideoButton() {
-  if (!videoBtn) return;
   videoActive = false;
-  videoBtn.classList.remove("active");
-  videoBtn.textContent = "Start video";
+  cameraBtn?.classList.remove("active");
+  micBtn?.classList.remove("active");
+  if (cameraBtn) cameraBtn.textContent = "Camera off";
+  if (micBtn) micBtn.textContent = "Mic off";
 }
 
 function setVideoTileState() {
@@ -117,6 +119,8 @@ async function createPeerConnection() {
 }
 
 async function startVideoCall() {
+  if (videoActive) return;
+  videoActive = true;
   const connection = await createPeerConnection();
   const offer = await connection.createOffer();
   await connection.setLocalDescription(offer);
@@ -158,28 +162,22 @@ chatForm.addEventListener("submit", (event) => {
   messageInput.value = "";
 });
 
-videoBtn?.addEventListener("click", async () => {
-  if (!currentMatch) {
-    setSystemMessage("Wait for a video chat match first.");
-    return;
-  }
+cameraBtn?.addEventListener("click", () => {
+  const videoTrack = localStream?.getVideoTracks()[0];
+  if (!videoTrack) return;
 
-  if (videoActive) {
-    addMessage("System", "Video call ended.");
-    stopVideoCall();
-    return;
-  }
+  videoTrack.enabled = !videoTrack.enabled;
+  cameraBtn.classList.toggle("active", videoTrack.enabled);
+  cameraBtn.textContent = videoTrack.enabled ? "Camera off" : "Camera on";
+});
 
-  try {
-    videoActive = true;
-    videoBtn.classList.add("active");
-    videoBtn.textContent = "End video";
-    addMessage("System", "Requesting camera and microphone permission...");
-    await startVideoCall();
-  } catch (error) {
-    addMessage("System", "Camera/microphone permission was blocked or unavailable. Use HTTPS and allow browser permission.");
-    stopVideoCall(false);
-  }
+micBtn?.addEventListener("click", () => {
+  const audioTrack = localStream?.getAudioTracks()[0];
+  if (!audioTrack) return;
+
+  audioTrack.enabled = !audioTrack.enabled;
+  micBtn.classList.toggle("active", audioTrack.enabled);
+  micBtn.textContent = audioTrack.enabled ? "Mic off" : "Mic on";
 });
 
 skipBtn.addEventListener("click", () => {
@@ -225,9 +223,22 @@ socket.on("matched", (payload) => {
 
   setSystemMessage(
     pageMode === "video"
-      ? `Matched with ${currentMatch.name}. Tap Start video to allow camera.`
+      ? `Matched with ${currentMatch.name}. Requesting camera and microphone permission...`
       : `Matched with ${currentMatch.name}. Say hello to begin.`,
   );
+
+  if (pageMode === "video") {
+    startVideoCall()
+      .then(() => {
+        cameraBtn?.classList.add("active");
+        micBtn?.classList.add("active");
+        addMessage("System", "Camera and microphone are active.");
+      })
+      .catch(() => {
+        addMessage("System", "Camera/microphone permission was blocked or unavailable. Allow permission in browser settings.");
+        stopVideoCall(false);
+      });
+  }
 });
 
 socket.on("chat-message", (payload) => {
@@ -239,10 +250,10 @@ socket.on("video-signal", async (payload) => {
   try {
     if (payload.type === "offer") {
       videoActive = true;
-      videoBtn.classList.add("active");
-      videoBtn.textContent = "End video";
       addMessage("System", "Incoming video call. Requesting camera permission...");
       const connection = await createPeerConnection();
+      cameraBtn?.classList.add("active");
+      micBtn?.classList.add("active");
       await connection.setRemoteDescription(payload.description);
       const answer = await connection.createAnswer();
       await connection.setLocalDescription(answer);

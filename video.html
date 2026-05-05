@@ -27,21 +27,22 @@
           </div>
         </div>
 
-        <div class="video-stage">
-          <div class="video-tile local">
-            <video id="localVideo" autoplay muted playsinline></video>
-            <span class="camera-icon">.</span>
-            <strong>You</strong>
-          </div>
+        <div class="video-stage call-stage">
           <div class="video-tile remote">
             <video id="remoteVideo" autoplay playsinline></video>
             <span class="camera-icon">.</span>
             <strong id="remoteLabel">Match</strong>
           </div>
+          <div class="video-tile local self-preview">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <span class="camera-icon">.</span>
+            <strong>You</strong>
+          </div>
         </div>
 
         <div class="call-controls" aria-label="Video controls">
-          <button id="videoBtn" type="button">Start video</button>
+          <button id="cameraBtn" type="button">Camera off</button>
+          <button id="micBtn" type="button">Mic off</button>
           <button id="skipBtn" type="button">Next</button>
           <button id="blockBtn" type="button">Block</button>
           <button id="reportBtn" type="button">Report</button>

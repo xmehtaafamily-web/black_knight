@@ -327,6 +327,40 @@ input[type="text"]:focus {
   min-height: 250px;
 }
 
+.call-stage {
+  position: relative;
+  display: block;
+  min-height: 520px;
+}
+
+.call-stage .video-tile.remote {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+}
+
+.call-stage .self-preview {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5;
+  width: min(34%, 210px);
+  min-height: 150px;
+  aspect-ratio: 9 / 13;
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+
+.call-stage .self-preview .camera-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.call-stage .self-preview .camera-icon::before {
+  width: 20px;
+  height: 14px;
+}
+
 .chat-panel.chat-mode .messages {
   min-height: 420px;
 }
@@ -395,7 +429,7 @@ input[type="text"]:focus {
 
 .call-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
 }
 
@@ -409,7 +443,8 @@ input[type="text"]:focus {
   background: #edf3ef;
 }
 
-#videoBtn.active {
+#cameraBtn.active,
+#micBtn.active {
   color: white;
   background: var(--accent);
 }
@@ -543,5 +578,20 @@ input[type="text"]:focus {
 
   .video-tile {
     min-height: 230px;
+  }
+
+  .call-stage {
+    min-height: 58vh;
+  }
+
+  .call-stage .video-tile.remote {
+    min-height: 58vh;
+  }
+
+  .call-stage .self-preview {
+    width: 34%;
+    min-height: 128px;
+    right: 10px;
+    bottom: 10px;
   }
 }
