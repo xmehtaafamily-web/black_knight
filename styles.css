@@ -163,6 +163,27 @@ input {
   margin-top: 18px;
 }
 
+.next-ad-slot {
+  display: none;
+}
+
+.next-ad-slot.visible {
+  display: flex;
+  animation: adReveal 180ms ease-out;
+}
+
+@keyframes adReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .legal-links {
   display: flex;
   gap: 14px;

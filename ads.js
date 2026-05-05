@@ -1,10 +1,22 @@
 window.BlackKnightAds = {
   provider: "affiliate",
   affiliate: {
-    href: "https://black-knight.onrender.com/safety.html",
+    href: "https://bywiola.com/c/78tuvzaw8k1895f3294b0267b86f6e/",
     label: "Sponsored",
     title: "Listen to music",
     image: "./assets/banner-india-ppp_300x250_2024-01-24.aa31.png",
+    offers: [
+      {
+        href: "https://bywiola.com/c/78tuvzaw8k1895f3294b0267b86f6e/",
+        title: "Listen to music",
+        image: "./assets/banner-india-ppp_300x250_2024-01-24.aa31.png",
+      },
+      {
+        href: "https://grfpr.com/g/exe221unkp1895f3294bddf84d4c0b/",
+        title: "Sponsored offer",
+        image: "./assets/banner-india-ppp_300x250_2024-01-24.aa31.png",
+      },
+    ],
   },
   adsense: {
     enabled: true,
@@ -50,16 +62,19 @@ function renderBlackKnightAds() {
       return;
     }
 
-    slot.innerHTML = config.affiliate.image
+    const offers = config.affiliate.offers?.length ? config.affiliate.offers : [config.affiliate];
+    const offer = offers[Math.floor(Math.random() * offers.length)];
+
+    slot.innerHTML = offer.image
       ? `
-        <a class="ad-link ad-image-link" href="${config.affiliate.href}" target="_blank" rel="sponsored noopener">
-          <img src="${config.affiliate.image}" alt="${config.affiliate.title}" loading="lazy" />
+        <a class="ad-link ad-image-link" href="${offer.href}" target="_blank" rel="sponsored noopener">
+          <img src="${offer.image}" alt="${offer.title}" loading="lazy" />
         </a>
       `
       : `
-        <a class="ad-link" href="${config.affiliate.href}" target="_blank" rel="sponsored noopener">
+        <a class="ad-link" href="${offer.href}" target="_blank" rel="sponsored noopener">
           <span>${config.affiliate.label}</span>
-          <strong>${config.affiliate.title}</strong>
+          <strong>${offer.title}</strong>
         </a>
       `;
   });

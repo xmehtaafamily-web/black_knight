@@ -16,6 +16,7 @@ const skipBtn = document.querySelector("#skipBtn");
 const blockBtn = document.querySelector("#blockBtn");
 const reportBtn = document.querySelector("#reportBtn");
 const messageInput = document.querySelector("#messageInput");
+const nextAdSlot = document.querySelector("#nextAdSlot");
 const typingIndicator = document.querySelector("#typingIndicator");
 const localVideo = document.querySelector("#localVideo");
 const remoteVideo = document.querySelector("#remoteVideo");
@@ -34,6 +35,7 @@ let wasBanned = false;
 let activeReconnectCode = "";
 let typingTimer = null;
 let remoteTypingTimer = null;
+let nextClickCount = 0;
 
 let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -215,6 +217,13 @@ endCallBtn?.addEventListener("click", () => {
 });
 
 skipBtn.addEventListener("click", () => {
+  nextClickCount += 1;
+  if (nextClickCount % 5 === 0) {
+    nextAdSlot?.classList.add("visible");
+  } else {
+    nextAdSlot?.classList.remove("visible");
+  }
+
   currentMatch = null;
   stopVideoCall();
   updateMatchUI();
