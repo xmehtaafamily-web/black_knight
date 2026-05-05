@@ -16,6 +16,7 @@ const skipBtn = document.querySelector("#skipBtn");
 const blockBtn = document.querySelector("#blockBtn");
 const reportBtn = document.querySelector("#reportBtn");
 const messageInput = document.querySelector("#messageInput");
+const typingIndicator = document.querySelector("#typingIndicator");
 const localVideo = document.querySelector("#localVideo");
 const remoteVideo = document.querySelector("#remoteVideo");
 
@@ -31,6 +32,8 @@ let localStream = null;
 let peerConnection = null;
 let wasBanned = false;
 let activeReconnectCode = "";
+let typingTimer = null;
+let remoteTypingTimer = null;
 
 let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -174,7 +177,17 @@ chatForm.addEventListener("submit", (event) => {
   if (!text) return;
   addMessage(currentUser.name, text, true);
   socket.emit("chat-message", { text });
+  socket.emit("typing", { isTyping: false });
   messageInput.value = "";
+});
+
+messageInput.addEventListener("input", () => {
+  if (!currentMatch) return;
+  socket.emit("typing", { isTyping: Boolean(messageInput.value.trim()) });
+  window.clearTimeout(typingTimer);
+  typingTimer = window.setTimeout(() => {
+    socket.emit("typing", { isTyping: false });
+  }, 1200);
 });
 
 cameraBtn?.addEventListener("click", () => {
@@ -274,7 +287,22 @@ socket.on("matched", (payload) => {
 });
 
 socket.on("chat-message", (payload) => {
-  if (payload?.from && payload.text) addMessage(payload.from.name, payload.text);
+  if (payload?.from && payload.text) {
+    typingIndicator.textContent = "";
+    addMessage(payload.from.name, payload.text);
+  }
+});
+
+socket.on("typing", (payload) => {
+  window.clearTimeout(remoteTypingTimer);
+  typingIndicator.innerHTML = payload?.isTyping
+    ? '<div class="typing-bubble" aria-label="Typing"><span></span><span></span><span></span></div>'
+    : "";
+  if (payload?.isTyping) {
+    remoteTypingTimer = window.setTimeout(() => {
+      typingIndicator.innerHTML = "";
+    }, 1800);
+  }
 });
 
 socket.on("video-signal", async (payload) => {

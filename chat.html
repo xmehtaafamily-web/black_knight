@@ -41,6 +41,7 @@
         <div id="messages" class="messages" aria-live="polite">
           <div class="empty-state">Looking for a chat match...</div>
         </div>
+        <div id="typingIndicator" class="typing-indicator" aria-live="polite"></div>
 
         <form id="chatForm" class="chat-form">
           <input id="messageInput" type="text" maxlength="180" placeholder="Type a message..." />
@@ -58,6 +59,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="./ads.js"></script>
-    <script src="./room.js" data-room-mode="text"></script>
+    <script src="./room.js?v=typing-2" data-room-mode="text"></script>
   </body>
 </html>
