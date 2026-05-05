@@ -1,9 +1,10 @@
 window.BlackKnightAds = {
-  provider: "adsense",
+  provider: "affiliate",
   affiliate: {
     href: "https://black-knight.onrender.com/safety.html",
     label: "Sponsored",
-    title: "Advertise on Black_knight",
+    title: "Listen to music",
+    image: "./assets/banner-india-ppp_300x250_2024-01-24.aa31.png",
   },
   adsense: {
     enabled: true,
@@ -49,12 +50,18 @@ function renderBlackKnightAds() {
       return;
     }
 
-    slot.innerHTML = `
-      <a class="ad-link" href="${config.affiliate.href}" target="_blank" rel="sponsored noopener">
-        <span>${config.affiliate.label}</span>
-        <strong>${config.affiliate.title}</strong>
-      </a>
-    `;
+    slot.innerHTML = config.affiliate.image
+      ? `
+        <a class="ad-link ad-image-link" href="${config.affiliate.href}" target="_blank" rel="sponsored noopener">
+          <img src="${config.affiliate.image}" alt="${config.affiliate.title}" loading="lazy" />
+        </a>
+      `
+      : `
+        <a class="ad-link" href="${config.affiliate.href}" target="_blank" rel="sponsored noopener">
+          <span>${config.affiliate.label}</span>
+          <strong>${config.affiliate.title}</strong>
+        </a>
+      `;
   });
 }
 

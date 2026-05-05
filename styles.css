@@ -148,6 +148,17 @@ input {
   text-align: right;
 }
 
+.ad-image-link {
+  justify-content: center;
+}
+
+.ad-image-link img {
+  display: block;
+  width: min(300px, 100%);
+  height: auto;
+  border-radius: 8px;
+}
+
 .ad-slot-top {
   margin-top: 18px;
 }
