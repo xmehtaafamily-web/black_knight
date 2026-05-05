@@ -31,7 +31,25 @@ function loadSavedProfile() {
   savedCodeInput.value = localStorage.getItem(storageKeys.reconnectCode) || "";
 }
 
-profileForm.addEventListener("submit", (event) => {
+async function requestVideoPermissionIfNeeded(mode) {
+  if (mode !== "video") return true;
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    window.alert("Camera is not available in this browser.");
+    return false;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    return true;
+  } catch (error) {
+    window.alert("Camera and microphone permission is required for Video Chat. Allow permission in browser settings and try again.");
+    return false;
+  }
+}
+
+profileForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!ageCheck.checked) {
@@ -40,6 +58,9 @@ profileForm.addEventListener("submit", (event) => {
   }
 
   const mode = getSelected("chatMode");
+  const hasVideoPermission = await requestVideoPermissionIfNeeded(mode);
+  if (!hasVideoPermission) return;
+
   const profile = {
     name: displayNameInput.value.trim() || "Guest",
     email: emailInput.value.trim(),
