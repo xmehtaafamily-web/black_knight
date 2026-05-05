@@ -391,6 +391,16 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("typing", (payload) => {
+    const user = users.get(socket.id);
+    if (!user?.roomId) return;
+
+    socket.to(user.roomId).emit("typing", {
+      from: publicUser(user),
+      isTyping: Boolean(payload.isTyping),
+    });
+  });
+
   socket.on("video-signal", (payload) => {
     const user = users.get(socket.id);
     if (!user?.roomId) return;
