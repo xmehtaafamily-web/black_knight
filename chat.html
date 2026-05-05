@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell in-room">
+      <section id="chatPanel" class="panel chat-panel chat-mode" aria-label="Chat room">
+        <div class="match-header">
+          <div>
+            <p class="eyebrow">Chat room</p>
+            <h2 id="matchName">Waiting room</h2>
+            <p id="reconnectCode" class="room-code"></p>
+          </div>
+          <div class="match-meta">
+            <span id="modeStatus" class="live-dot">Chat mode</span>
+            <span id="matchStatus" class="live-dot">Waiting</span>
+          </div>
+        </div>
+
+        <div class="call-controls" aria-label="Chat controls">
+          <button id="skipBtn" type="button">Next</button>
+          <button id="blockBtn" type="button">Block</button>
+          <button id="reportBtn" type="button">Report</button>
+        </div>
+
+        <div id="messages" class="messages" aria-live="polite">
+          <div class="empty-state">Looking for a chat match...</div>
+        </div>
+
+        <form id="chatForm" class="chat-form">
+          <input id="messageInput" type="text" maxlength="180" placeholder="Type a message..." />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <template id="messageTemplate">
+      <article class="message">
+        <span></span>
+        <p></p>
+      </article>
+    </template>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./room.js" data-room-mode="text"></script>
+  </body>
+</html>

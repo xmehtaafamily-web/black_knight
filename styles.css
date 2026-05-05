@@ -41,6 +41,20 @@ input {
   margin: 16px auto;
 }
 
+.start-shell {
+  grid-template-columns: 1fr;
+  width: min(620px, calc(100% - 32px));
+}
+
+.app-shell.in-room {
+  grid-template-columns: 1fr;
+  width: min(980px, calc(100% - 24px));
+}
+
+.app-shell.in-room .intro-panel {
+  display: none;
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -102,6 +116,17 @@ input {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.room-code {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.room-code strong {
+  color: var(--ink);
 }
 
 .intro-copy {
@@ -267,6 +292,28 @@ input[type="text"]:focus {
   padding: 18px;
 }
 
+.chat-panel.idle {
+  align-content: center;
+}
+
+.chat-panel.chat-mode {
+  grid-template-rows: auto auto minmax(420px, 1fr) auto;
+  min-height: calc(100vh - 32px);
+}
+
+.chat-panel.video-mode {
+  grid-template-rows: auto minmax(360px, 1.1fr) auto minmax(220px, 0.8fr) auto;
+  min-height: calc(100vh - 32px);
+}
+
+.chat-panel.chat-mode .video-stage {
+  display: none;
+}
+
+.chat-panel.chat-mode #videoBtn {
+  display: none;
+}
+
 .live-dot.online {
   border-color: rgba(15, 143, 120, 0.3);
   color: var(--accent-dark);
@@ -278,6 +325,10 @@ input[type="text"]:focus {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   min-height: 250px;
+}
+
+.chat-panel.chat-mode .messages {
+  min-height: 420px;
 }
 
 .video-tile {
@@ -346,6 +397,10 @@ input[type="text"]:focus {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+.chat-panel.chat-mode .call-controls {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .call-controls button {
@@ -437,6 +492,10 @@ input[type="text"]:focus {
   .video-stage {
     grid-template-columns: 1fr;
   }
+
+  .chat-panel.video-mode {
+    grid-template-rows: auto minmax(520px, auto) auto minmax(260px, 1fr) auto;
+  }
 }
 
 @media (max-width: 520px) {
@@ -459,12 +518,30 @@ input[type="text"]:focus {
     grid-template-columns: 1fr 1fr;
   }
 
+  .chat-panel.chat-mode .call-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .chat-form {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .otp-row {
-    grid-template-columns: 1fr;
+  .app-shell.in-room {
+    width: min(100% - 12px, 620px);
+    margin: 6px auto;
+  }
+
+  .chat-panel.chat-mode,
+  .chat-panel.video-mode {
+    min-height: calc(100vh - 12px);
+  }
+
+  .chat-panel.chat-mode .messages {
+    min-height: 52vh;
+  }
+
+  .video-tile {
+    min-height: 230px;
   }
 }

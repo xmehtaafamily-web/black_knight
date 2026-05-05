@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <section id="introPanel" class="panel intro-panel" aria-label="Start matching">
+    <main class="app-shell start-shell">
+      <section class="panel intro-panel" aria-label="Start matching">
         <nav class="topbar">
           <div class="brand">
             <span class="brand-mark">BK</span>
@@ -25,11 +25,8 @@
 
         <div class="intro-copy">
           <p class="eyebrow">Random chat and video matching</p>
-          <h1>Meet new people with preference-based matching.</h1>
-          <p>
-            Start with text chat, switch to video only when both people agree,
-            and keep controls for skip, block, and report close at hand.
-          </p>
+          <h1>Choose how you want to meet.</h1>
+          <p>Chat and Video Chat open as separate rooms after you start matching.</p>
         </div>
 
         <form id="profileForm" class="setup-form">
@@ -77,62 +74,11 @@
             <span>I confirm I am 18 or older.</span>
           </label>
 
-          <button id="startBtn" class="primary-action" type="submit">Start random chat</button>
-        </form>
-      </section>
-
-      <section id="chatPanel" class="panel chat-panel idle" aria-label="Random chat room">
-        <div class="match-header">
-          <div>
-            <p class="eyebrow">Current match</p>
-            <h2 id="matchName">Waiting room</h2>
-            <p id="reconnectCode" class="room-code"></p>
-          </div>
-          <div class="match-meta">
-            <span id="modeStatus" class="live-dot">Chat mode</span>
-            <span id="matchStatus" class="live-dot">Offline</span>
-          </div>
-        </div>
-
-        <div class="video-stage">
-          <div class="video-tile local">
-            <video id="localVideo" autoplay muted playsinline></video>
-            <span class="camera-icon">●</span>
-            <strong>You</strong>
-          </div>
-          <div class="video-tile remote">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <span class="camera-icon">●</span>
-            <strong id="remoteLabel">Match</strong>
-          </div>
-        </div>
-
-        <div class="call-controls" aria-label="Call controls">
-          <button id="videoBtn" type="button">Start video</button>
-          <button id="skipBtn" type="button">Next</button>
-          <button id="blockBtn" type="button">Block</button>
-          <button id="reportBtn" type="button">Report</button>
-        </div>
-
-        <div id="messages" class="messages" aria-live="polite">
-          <div class="empty-state">Create your profile to start matching.</div>
-        </div>
-
-        <form id="chatForm" class="chat-form">
-          <input id="messageInput" type="text" maxlength="180" placeholder="Type a message..." />
-          <button type="submit">Send</button>
+          <button class="primary-action" type="submit">Start random chat</button>
         </form>
       </section>
     </main>
 
-    <template id="messageTemplate">
-      <article class="message">
-        <span></span>
-        <p></p>
-      </article>
-    </template>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="./script.js"></script>
+    <script src="./home.js"></script>
   </body>
 </html>
