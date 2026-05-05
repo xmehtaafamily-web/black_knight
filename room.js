@@ -10,6 +10,7 @@ const reconnectCode = document.querySelector("#reconnectCode");
 const remoteLabel = document.querySelector("#remoteLabel");
 const cameraBtn = document.querySelector("#cameraBtn");
 const micBtn = document.querySelector("#micBtn");
+const endCallBtn = document.querySelector("#endCallBtn");
 const skipBtn = document.querySelector("#skipBtn");
 const blockBtn = document.querySelector("#blockBtn");
 const reportBtn = document.querySelector("#reportBtn");
@@ -178,6 +179,12 @@ micBtn?.addEventListener("click", () => {
   audioTrack.enabled = !audioTrack.enabled;
   micBtn.classList.toggle("active", audioTrack.enabled);
   micBtn.textContent = audioTrack.enabled ? "Mic off" : "Mic on";
+});
+
+endCallBtn?.addEventListener("click", () => {
+  if (!videoActive && !localStream && !peerConnection) return;
+  addMessage("System", "Video call ended.");
+  stopVideoCall();
 });
 
 skipBtn.addEventListener("click", () => {

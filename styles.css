@@ -453,6 +453,11 @@ input[type="text"]:focus {
   color: var(--danger);
 }
 
+#endCallBtn {
+  color: white;
+  background: var(--danger);
+}
+
 .messages {
   display: flex;
   min-height: 210px;
