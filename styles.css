@@ -110,6 +110,50 @@ input {
   white-space: nowrap;
 }
 
+.ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  border: 1px dashed rgba(15, 143, 120, 0.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--muted);
+  background: rgba(15, 143, 120, 0.06);
+}
+
+.ad-slot span {
+  color: var(--accent-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ad-slot strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+  text-align: right;
+}
+
+.ad-slot-top {
+  margin-top: 18px;
+}
+
+.legal-links {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.legal-links a {
+  color: var(--accent-dark);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .match-meta {
   display: flex;
   align-items: center;
