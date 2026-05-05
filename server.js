@@ -107,6 +107,11 @@ function findMatch(user) {
     if (candidateId === user.id) continue;
 
     const candidate = users.get(candidateId);
+    const candidateSocket = io.sockets.sockets.get(candidateId);
+    if (!candidateSocket) {
+      waiting.delete(candidateId);
+      continue;
+    }
     if (!candidate || candidate.roomId || !preferencesFit(user, candidate)) continue;
 
     return candidate;
@@ -179,10 +184,15 @@ function queueReconnectUser(socket, code) {
   const normalizedCode = String(code || "").trim().toUpperCase();
   const waitingUserId = reconnectWaiting.get(normalizedCode);
   const waitingUser = waitingUserId ? users.get(waitingUserId) : null;
+  const waitingSocket = waitingUserId ? io.sockets.sockets.get(waitingUserId) : null;
 
   user.roomId = null;
 
-  if (waitingUser && waitingUser.id !== user.id && !waitingUser.roomId && waitingUser.mode === user.mode) {
+  if (!waitingSocket && waitingUserId) {
+    reconnectWaiting.delete(normalizedCode);
+  }
+
+  if (waitingSocket && waitingUser && waitingUser.id !== user.id && !waitingUser.roomId && waitingUser.mode === user.mode) {
     reconnectWaiting.delete(normalizedCode);
     matchUsers(user, waitingUser, normalizedCode);
     return;
