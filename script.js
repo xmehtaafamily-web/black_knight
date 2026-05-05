@@ -5,12 +5,6 @@ const chatForm = document.querySelector("#chatForm");
 const messages = document.querySelector("#messages");
 const messageTemplate = document.querySelector("#messageTemplate");
 const displayNameInput = document.querySelector("#displayName");
-const contactInput = document.querySelector("#contactInput");
-const otpInput = document.querySelector("#otpInput");
-const sendOtpBtn = document.querySelector("#sendOtpBtn");
-const verifyOtpBtn = document.querySelector("#verifyOtpBtn");
-const authStatus = document.querySelector("#authStatus");
-const startBtn = document.querySelector("#startBtn");
 const ageCheck = document.querySelector("#ageCheck");
 const matchName = document.querySelector("#matchName");
 const matchStatus = document.querySelector("#matchStatus");
@@ -30,7 +24,6 @@ let videoActive = false;
 let localStream = null;
 let peerConnection = null;
 let wasBanned = false;
-let verifiedContact = null;
 
 const rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -51,9 +44,7 @@ function addMessage(author, text, own = false) {
   node.querySelector("p").textContent = text;
 
   const emptyState = messages.querySelector(".empty-state");
-  if (emptyState) {
-    messages.innerHTML = "";
-  }
+  if (emptyState) messages.innerHTML = "";
 
   messages.append(node);
   messages.scrollTop = messages.scrollHeight;
@@ -81,13 +72,6 @@ function resetVideoButton() {
   videoActive = false;
   videoBtn.classList.remove("active");
   videoBtn.textContent = currentUser?.mode === "video" ? "Start video" : "Chat only";
-}
-
-function setAuthState(contact) {
-  verifiedContact = contact || null;
-  startBtn.disabled = !verifiedContact;
-  authStatus.classList.toggle("verified", Boolean(verifiedContact));
-  authStatus.textContent = verifiedContact ? `Verified: ${verifiedContact}` : "Verify before matching.";
 }
 
 function setVideoTileState() {
@@ -167,11 +151,6 @@ profileForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (!verifiedContact) {
-    setSystemMessage("Verify email or phone before matching.");
-    return;
-  }
-
   currentUser = {
     name: displayNameInput.value.trim() || "Guest",
     gender: getSelected("gender"),
@@ -185,64 +164,6 @@ profileForm.addEventListener("submit", (event) => {
   updateMatchUI();
   setSystemMessage("Looking for a matching user...");
   socket.emit("join", currentUser);
-});
-
-sendOtpBtn.addEventListener("click", async () => {
-  const contact = contactInput.value.trim();
-  authStatus.classList.remove("verified");
-
-  if (!contact) {
-    authStatus.textContent = "Enter email or phone first.";
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/auth/request-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contact }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      authStatus.textContent = data.error || "Could not send OTP.";
-      return;
-    }
-
-    authStatus.textContent = `Local test OTP: ${data.devCode}`;
-  } catch (error) {
-    authStatus.textContent = "Run the server at localhost:3000 to use OTP.";
-  }
-});
-
-verifyOtpBtn.addEventListener("click", async () => {
-  const contact = contactInput.value.trim();
-  const code = otpInput.value.trim();
-
-  if (!contact || !code) {
-    authStatus.textContent = "Enter contact and OTP.";
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/auth/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contact, code }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      setAuthState(null);
-      authStatus.textContent = data.error || "OTP verification failed.";
-      return;
-    }
-
-    otpInput.value = "";
-    setAuthState(data.contact);
-  } catch (error) {
-    authStatus.textContent = "Run the server at localhost:3000 to verify OTP.";
-  }
 });
 
 chatForm.addEventListener("submit", (event) => {
@@ -333,13 +254,6 @@ socket.on("waiting", (payload) => {
   setSystemMessage(payload.message || "Waiting for a matching user...");
 });
 
-socket.on("auth-required", (payload) => {
-  currentMatch = null;
-  stopVideoCall(false);
-  updateMatchUI();
-  setSystemMessage(payload.message || "Verify email or phone before matching.");
-});
-
 socket.on("matched", (payload) => {
   currentMatch = payload.match;
   stopVideoCall(false);
@@ -419,15 +333,3 @@ socket.on("banned", (payload) => {
   updateMatchUI();
   setSystemMessage(payload.reason || "This profile has been banned.");
 });
-
-async function loadAuthState() {
-  try {
-    const response = await fetch("/api/auth/me");
-    const data = await response.json();
-    setAuthState(data.verified ? data.contact : null);
-  } catch (error) {
-    setAuthState(null);
-  }
-}
-
-loadAuthState();

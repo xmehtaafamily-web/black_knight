@@ -33,19 +33,6 @@
         </div>
 
         <form id="profileForm" class="setup-form">
-          <div class="auth-box">
-            <label>
-              Email or phone
-              <input id="contactInput" type="text" maxlength="64" placeholder="you@example.com or phone" />
-            </label>
-            <div class="otp-row">
-              <input id="otpInput" type="text" maxlength="6" placeholder="OTP code" />
-              <button id="sendOtpBtn" type="button">Send OTP</button>
-              <button id="verifyOtpBtn" type="button">Verify</button>
-            </div>
-            <p id="authStatus" class="auth-status">Verify before matching.</p>
-          </div>
-
           <label>
             Display name
             <input id="displayName" type="text" maxlength="24" placeholder="Guest user" />
@@ -80,7 +67,7 @@
             <span>I confirm I am 18 or older.</span>
           </label>
 
-          <button id="startBtn" class="primary-action" type="submit" disabled>Start random chat</button>
+          <button id="startBtn" class="primary-action" type="submit">Start random chat</button>
         </form>
       </section>
 

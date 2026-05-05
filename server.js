@@ -20,8 +20,6 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "blackknight123";
 const adminSessions = new Set();
-const otpChallenges = new Map();
-const userSessions = new Map();
 const users = new Map();
 const waiting = new Set();
 
@@ -45,10 +43,6 @@ function requireAdmin(request, response, next) {
   }
 
   next();
-}
-
-function getVerifiedContact(request) {
-  return userSessions.get(getCookie(request, "bk_user")) || null;
 }
 
 function normalizeContact(contact) {
@@ -245,69 +239,15 @@ app.post("/api/bans", requireAdmin, async (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/auth/request-otp", (request, response) => {
-  const contact = String(request.body?.contact || "").trim().slice(0, 64);
-
-  if (!contact || contact.length < 5) {
-    response.status(400).json({ error: "Valid email or phone is required" });
-    return;
-  }
-
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  otpChallenges.set(contact.toLowerCase(), {
-    code,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
-
-  console.log(`Black_knight OTP for ${contact}: ${code}`);
-  response.json({
-    ok: true,
-    devCode: code,
-    message: "OTP generated for local MVP testing.",
-  });
-});
-
-app.post("/api/auth/verify", (request, response) => {
-  const contact = String(request.body?.contact || "").trim().slice(0, 64);
-  const code = String(request.body?.code || "").trim();
-  const challenge = otpChallenges.get(contact.toLowerCase());
-
-  if (!challenge || challenge.expiresAt < Date.now() || challenge.code !== code) {
-    response.status(401).json({ error: "Invalid or expired OTP" });
-    return;
-  }
-
-  otpChallenges.delete(contact.toLowerCase());
-
-  const token = crypto.randomBytes(24).toString("hex");
-  userSessions.set(token, contact);
-  response.setHeader("Set-Cookie", `bk_user=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000`);
-  response.json({ ok: true, contact });
-});
-
-app.get("/api/auth/me", (request, response) => {
-  const contact = getVerifiedContact(request);
-  response.json({
-    verified: Boolean(contact),
-    contact,
-  });
-});
-
 io.on("connection", (socket) => {
   socket.on("join", async (profile) => {
-    const verifiedContact = getVerifiedContact(socket.request);
-    if (!verifiedContact) {
-      socket.emit("auth-required", { message: "Verify email or phone before matching." });
-      return;
-    }
-
     const name = String(profile.name || "Guest").trim().slice(0, 24) || "Guest";
     const gender = profile.gender === "female" ? "female" : "male";
     const preference = profile.preference === "male" ? "male" : "female";
     const mode = profile.mode === "video" ? "video" : "text";
 
-    if (await isProfileBanned(name, verifiedContact)) {
-      socket.emit("banned", { reason: "This verified account is banned." });
+    if (await isProfileBanned(name, "")) {
+      socket.emit("banned", { reason: "This profile name is banned." });
       socket.disconnect(true);
       return;
     }
@@ -318,8 +258,8 @@ io.on("connection", (socket) => {
       gender,
       preference,
       mode,
-      contact: verifiedContact,
-      verified: true,
+      contact: "",
+      verified: false,
       roomId: null,
     });
 

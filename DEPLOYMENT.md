@@ -57,7 +57,7 @@ For reliable video calls on mobile networks, add a TURN server before launch. ST
 
 ## Before public launch
 
-1. Replace local OTP with a real SMS/email provider.
+1. Add optional phone/email verification for stronger bans.
 2. Add proper admin accounts instead of one shared admin password.
 3. Add privacy policy, terms, and 18+ policy pages.
 4. Add abuse moderation rules and ban appeals.

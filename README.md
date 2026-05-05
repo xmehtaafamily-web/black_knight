@@ -25,7 +25,7 @@ http://localhost:3000
 ## Current prototype
 
 - Guest profile setup
-- Email or phone OTP verification before matching
+- Direct guest access without OTP
 - Gender and match preference selection
 - Separate Chat and Video Chat modes
 - 18+ confirmation
@@ -53,9 +53,9 @@ ADMIN_PASSWORD=your-strong-password npm run dev
 
 Before launch, move reports to a real database and use proper admin accounts.
 
-## OTP note
+## Guest access note
 
-OTP is a local MVP flow. The server returns a `devCode` and prints the same code in the terminal. Before launch, replace this with Twilio, Firebase Auth, Clerk, or another real email/SMS provider.
+The app currently allows direct guest matching without OTP. This reduces signup friction, but bans are weaker because users can change display names. For a serious public launch, add phone/email verification again.
 
 ## Database
 
@@ -69,8 +69,8 @@ The server creates the `reports` and `bans` tables automatically on startup.
 
 ## Next build steps
 
-1. Move OTP sessions and admin sessions into PostgreSQL or Redis.
-2. Replace local OTP with real email/SMS verification.
+1. Move admin sessions into PostgreSQL or Redis.
+2. Add optional phone/email verification for stronger bans.
 3. Add database-backed admin users and roles.
 4. Add TURN server support for stricter networks.
 5. Add production deployment setup.
