@@ -73,6 +73,28 @@ and enter that code to join a private room again. Without login, this code is th
 
 The site also saves the last reconnect code in the browser on that phone. If the user clears browser data, changes browser, or changes phone, this saved code will not follow them.
 
+## Ads
+
+Ads are configured in `ads.js`.
+
+Default mode is affiliate/sponsor:
+
+```js
+provider: "affiliate"
+```
+
+Replace `affiliate.href` and `affiliate.title` with your sponsor or affiliate link.
+
+After AdSense approval, set:
+
+```js
+provider: "adsense"
+adsense.enabled = true
+adsense.client = "ca-pub-your-id"
+```
+
+and replace the slot IDs for `start`, `chat`, and `video`.
+
 ## Database
 
 Reports and bans use PostgreSQL when `DATABASE_URL` is set. If it is not set, the app falls back to local JSON files for MVP testing.
