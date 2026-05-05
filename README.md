@@ -26,6 +26,7 @@ http://localhost:3000
 
 - Guest profile setup
 - Direct guest access without OTP
+- Optional email field for future reconnect/support workflows
 - Gender and match preference selection
 - Separate Chat and Video Chat modes
 - 18+ confirmation
@@ -36,6 +37,9 @@ http://localhost:3000
 - Reports saved to `reports.json`
 - Basic admin reports page at `/admin.html`
 - Admin can mark reports reviewed and ban reported verified contacts
+- Reconnect code shown after matching
+- Private reconnect page at `/reconnect.html`
+- Same browser/phone remembers the last reconnect code locally
 
 ## Admin note
 
@@ -56,6 +60,18 @@ Before launch, move reports to a real database and use proper admin accounts.
 ## Guest access note
 
 The app currently allows direct guest matching without OTP. This reduces signup friction, but bans are weaker because users can change display names. For a serious public launch, add phone/email verification again.
+
+## Reconnect
+
+After a random match, both users see a reconnect code such as `BK-123456`. If both users save the same code, they can later open:
+
+```text
+/reconnect.html
+```
+
+and enter that code to join a private room again. Without login, this code is the access key, so users should only share it with the person they want to reconnect with.
+
+The site also saves the last reconnect code in the browser on that phone. If the user clears browser data, changes browser, or changes phone, this saved code will not follow them.
 
 ## Database
 

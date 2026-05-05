@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Black_knight</title>
+    <title>Black_knight Reconnect</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,55 +14,31 @@
   </head>
   <body>
     <main class="app-shell">
-      <section id="introPanel" class="panel intro-panel" aria-label="Start matching">
+      <section class="panel intro-panel" aria-label="Reconnect">
         <nav class="topbar">
           <div class="brand">
             <span class="brand-mark">BK</span>
             <span>Black_knight</span>
           </div>
-          <span class="status-pill">18+ safe matching</span>
+          <span class="status-pill">Private reconnect</span>
         </nav>
 
         <div class="intro-copy">
-          <p class="eyebrow">Random chat and video matching</p>
-          <h1>Meet new people with preference-based matching.</h1>
-          <p>
-            Start with text chat, switch to video only when both people agree,
-            and keep controls for skip, block, and report close at hand.
-          </p>
+          <p class="eyebrow">Reconnect</p>
+          <h1>Use a saved code to meet again.</h1>
+          <p>Both people must enter the same reconnect code to join the private room.</p>
         </div>
 
-        <form id="profileForm" class="setup-form">
+        <form id="reconnectForm" class="setup-form">
           <label>
             Display name
             <input id="displayName" type="text" maxlength="24" placeholder="Guest user" />
           </label>
 
           <label>
-            Email optional
-            <input id="emailInput" type="email" maxlength="64" placeholder="For reconnect only" />
+            Reconnect code
+            <input id="codeInput" type="text" maxlength="16" placeholder="Example: BK-123456" />
           </label>
-
-          <label>
-            Saved reconnect code
-            <input id="savedCodeInput" type="text" maxlength="16" placeholder="Auto-saved after first match" />
-          </label>
-
-          <div class="field-group">
-            <span>Your gender</span>
-            <div class="segmented" role="radiogroup" aria-label="Your gender">
-              <label><input type="radio" name="gender" value="male" checked /> Male</label>
-              <label><input type="radio" name="gender" value="female" /> Female</label>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <span>Match with</span>
-            <div class="segmented" role="radiogroup" aria-label="Match preference">
-              <label><input type="radio" name="preference" value="female" checked /> Female</label>
-              <label><input type="radio" name="preference" value="male" /> Male</label>
-            </div>
-          </div>
 
           <div class="field-group">
             <span>Choose mode</span>
@@ -77,14 +53,14 @@
             <span>I confirm I am 18 or older.</span>
           </label>
 
-          <button id="startBtn" class="primary-action" type="submit">Start random chat</button>
+          <button class="primary-action" type="submit">Join private room</button>
         </form>
       </section>
 
-      <section id="chatPanel" class="panel chat-panel idle" aria-label="Random chat room">
+      <section id="chatPanel" class="panel chat-panel idle" aria-label="Private chat room">
         <div class="match-header">
           <div>
-            <p class="eyebrow">Current match</p>
+            <p class="eyebrow">Private room</p>
             <h2 id="matchName">Waiting room</h2>
             <p id="reconnectCode" class="room-code"></p>
           </div>
@@ -97,25 +73,25 @@
         <div class="video-stage">
           <div class="video-tile local">
             <video id="localVideo" autoplay muted playsinline></video>
-            <span class="camera-icon">●</span>
+            <span class="camera-icon">.</span>
             <strong>You</strong>
           </div>
           <div class="video-tile remote">
             <video id="remoteVideo" autoplay playsinline></video>
-            <span class="camera-icon">●</span>
+            <span class="camera-icon">.</span>
             <strong id="remoteLabel">Match</strong>
           </div>
         </div>
 
         <div class="call-controls" aria-label="Call controls">
           <button id="videoBtn" type="button">Start video</button>
-          <button id="skipBtn" type="button">Next</button>
+          <button id="skipBtn" type="button">Leave</button>
           <button id="blockBtn" type="button">Block</button>
           <button id="reportBtn" type="button">Report</button>
         </div>
 
         <div id="messages" class="messages" aria-live="polite">
-          <div class="empty-state">Create your profile to start matching.</div>
+          <div class="empty-state">Enter a reconnect code to join.</div>
         </div>
 
         <form id="chatForm" class="chat-form">
@@ -133,6 +109,6 @@
     </template>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="./script.js"></script>
+    <script src="./reconnect.js"></script>
   </body>
 </html>

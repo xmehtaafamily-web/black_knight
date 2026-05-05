@@ -22,6 +22,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "blackknight123";
 const adminSessions = new Set();
 const users = new Map();
 const waiting = new Set();
+const reconnectWaiting = new Map();
 
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
@@ -74,6 +75,10 @@ function preferencesFit(a, b) {
   return a.mode === b.mode && a.preference === b.gender && b.preference === a.gender;
 }
 
+function createReconnectCode() {
+  return `BK-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 async function isProfileBanned(name, contact) {
   const normalizedName = String(name || "").trim().toLowerCase();
   const normalizedContact = normalizeContact(contact);
@@ -110,7 +115,12 @@ function findMatch(user) {
   return null;
 }
 
-function matchUsers(a, b) {
+function chooseReconnectCode(a, b) {
+  if (a.savedCode && a.savedCode === b.savedCode) return a.savedCode;
+  return a.savedCode || b.savedCode || createReconnectCode();
+}
+
+function matchUsers(a, b, reconnectCode = chooseReconnectCode(a, b)) {
   waiting.delete(a.id);
   waiting.delete(b.id);
 
@@ -121,8 +131,8 @@ function matchUsers(a, b) {
   io.sockets.sockets.get(a.id)?.join(roomId);
   io.sockets.sockets.get(b.id)?.join(roomId);
 
-  io.to(a.id).emit("matched", { match: publicUser(b), roomId });
-  io.to(b.id).emit("matched", { match: publicUser(a), roomId });
+  io.to(a.id).emit("matched", { match: publicUser(b), roomId, reconnectCode });
+  io.to(b.id).emit("matched", { match: publicUser(a), roomId, reconnectCode });
 }
 
 function queueUser(socket) {
@@ -160,6 +170,26 @@ function leaveRoom(socket, reason = "Match disconnected.") {
       queueUser(io.sockets.sockets.get(otherUser.id));
     }
   }
+}
+
+function queueReconnectUser(socket, code) {
+  const user = users.get(socket.id);
+  if (!user) return;
+
+  const normalizedCode = String(code || "").trim().toUpperCase();
+  const waitingUserId = reconnectWaiting.get(normalizedCode);
+  const waitingUser = waitingUserId ? users.get(waitingUserId) : null;
+
+  user.roomId = null;
+
+  if (waitingUser && waitingUser.id !== user.id && !waitingUser.roomId && waitingUser.mode === user.mode) {
+    reconnectWaiting.delete(normalizedCode);
+    matchUsers(user, waitingUser, normalizedCode);
+    return;
+  }
+
+  reconnectWaiting.set(normalizedCode, user.id);
+  socket.emit("waiting", { message: "Waiting for the other person to enter this code..." });
 }
 
 app.post("/api/admin/login", (request, response) => {
@@ -258,12 +288,48 @@ io.on("connection", (socket) => {
       gender,
       preference,
       mode,
+      email: String(profile.email || "").trim().slice(0, 64),
+      deviceId: String(profile.deviceId || "").trim().slice(0, 80),
+      savedCode: /^BK-\d{6}$/.test(String(profile.savedCode || "").trim().toUpperCase())
+        ? String(profile.savedCode || "").trim().toUpperCase()
+        : "",
       contact: "",
       verified: false,
       roomId: null,
     });
 
     queueUser(socket);
+  });
+
+  socket.on("join-reconnect", async (profile) => {
+    const name = String(profile.name || "Guest").trim().slice(0, 24) || "Guest";
+    const mode = profile.mode === "video" ? "video" : "text";
+    const code = String(profile.code || "").trim().toUpperCase();
+
+    if (!/^BK-\d{6}$/.test(code)) {
+      socket.emit("waiting", { message: "Enter a valid reconnect code." });
+      return;
+    }
+
+    if (await isProfileBanned(name, "")) {
+      socket.emit("banned", { reason: "This profile name is banned." });
+      socket.disconnect(true);
+      return;
+    }
+
+    users.set(socket.id, {
+      id: socket.id,
+      name,
+      gender: "private",
+      preference: "private",
+      mode,
+      email: "",
+      contact: "",
+      verified: false,
+      roomId: null,
+    });
+
+    queueReconnectUser(socket, code);
   });
 
   socket.on("chat-message", (payload) => {
@@ -325,6 +391,9 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     waiting.delete(socket.id);
+    for (const [code, socketId] of reconnectWaiting.entries()) {
+      if (socketId === socket.id) reconnectWaiting.delete(code);
+    }
     leaveRoom(socket);
     users.delete(socket.id);
   });
