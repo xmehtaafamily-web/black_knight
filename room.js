@@ -277,11 +277,13 @@ socket.on("matched", (payload) => {
 
   setSystemMessage(
     pageMode === "video"
-      ? `Matched with ${currentMatch.name}. Requesting camera and microphone permission...`
+      ? payload.isInitiator
+        ? `Matched with ${currentMatch.name}. Requesting camera and microphone permission...`
+        : `Matched with ${currentMatch.name}. Waiting for video connection...`
       : `Matched with ${currentMatch.name}. Say hello to begin.`,
   );
 
-  if (pageMode === "video") {
+  if (pageMode === "video" && payload.isInitiator) {
     startVideoCall()
       .then(() => {
         cameraBtn?.classList.add("active");

@@ -140,8 +140,20 @@ function matchUsers(a, b, reconnectCode = chooseReconnectCode(a, b)) {
   io.sockets.sockets.get(a.id)?.join(roomId);
   io.sockets.sockets.get(b.id)?.join(roomId);
 
-  io.to(a.id).emit("matched", { match: publicUser(b), roomId, reconnectCode });
-  io.to(b.id).emit("matched", { match: publicUser(a), roomId, reconnectCode });
+  const initiatorId = [a.id, b.id].sort()[0];
+
+  io.to(a.id).emit("matched", {
+    match: publicUser(b),
+    roomId,
+    reconnectCode,
+    isInitiator: a.id === initiatorId,
+  });
+  io.to(b.id).emit("matched", {
+    match: publicUser(a),
+    roomId,
+    reconnectCode,
+    isInitiator: b.id === initiatorId,
+  });
 }
 
 function queueUser(socket) {
