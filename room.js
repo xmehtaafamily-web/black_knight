@@ -37,6 +37,7 @@ let typingTimer = null;
 let remoteTypingTimer = null;
 let nextClickCount = 0;
 let localMediaReady = false;
+let pendingIceCandidates = [];
 
 let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -139,6 +140,9 @@ async function createPeerConnection(options = { requireLocal: true }) {
   if (options.requireLocal) {
     const stream = await getLocalStream();
     stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+  } else {
+    peerConnection.addTransceiver("video", { direction: "recvonly" });
+    peerConnection.addTransceiver("audio", { direction: "recvonly" });
   }
   return peerConnection;
 }
@@ -157,6 +161,7 @@ function stopVideoCall(notifyMatch = true) {
   if (notifyMatch && currentMatch) socket.emit("video-signal", { type: "end" });
   peerConnection?.close();
   peerConnection = null;
+  pendingIceCandidates = [];
   localStream?.getTracks().forEach((track) => track.stop());
   localStream = null;
   if (localVideo) localVideo.srcObject = null;
@@ -358,7 +363,12 @@ socket.on("video-signal", async (payload) => {
   if (!payload?.type || pageMode !== "video") return;
   try {
     if (payload.type === "offer") {
-      if (peerConnection?.signalingState && peerConnection.signalingState !== "stable") return;
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+        pendingIceCandidates = [];
+      }
+
       videoActive = true;
       addMessage("System", "Incoming video call. Requesting camera permission...");
       let hasLocalMedia = true;
@@ -372,15 +382,29 @@ socket.on("video-signal", async (payload) => {
       cameraBtn?.classList.add("active");
       micBtn?.classList.add("active");
       await connection.setRemoteDescription(payload.description);
+      for (const candidate of pendingIceCandidates) {
+        await connection.addIceCandidate(candidate);
+      }
+      pendingIceCandidates = [];
       const answer = await connection.createAnswer();
       await connection.setLocalDescription(answer);
       socket.emit("video-signal", { type: "answer", description: connection.localDescription });
     }
     if (payload.type === "answer" && peerConnection) {
       await peerConnection.setRemoteDescription(payload.description);
+      for (const candidate of pendingIceCandidates) {
+        await peerConnection.addIceCandidate(candidate);
+      }
+      pendingIceCandidates = [];
       addMessage("System", "Video call connected.");
     }
-    if (payload.type === "ice-candidate" && peerConnection) await peerConnection.addIceCandidate(payload.candidate);
+    if (payload.type === "ice-candidate") {
+      if (!peerConnection || !peerConnection.remoteDescription) {
+        pendingIceCandidates.push(payload.candidate);
+      } else {
+        await peerConnection.addIceCandidate(payload.candidate);
+      }
+    }
     if (payload.type === "end") {
       addMessage("System", "Video call ended by match.");
       stopVideoCall(false);
