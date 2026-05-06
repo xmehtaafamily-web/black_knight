@@ -171,6 +171,11 @@ function startMatching() {
   setSystemMessage(pageMode === "video" ? "Looking for a video chat match..." : "Looking for a chat match...");
 
   if (pageMode === "video") {
+    if (sessionStorage.getItem("bk_video_permission_ready") !== "true") {
+      window.location.replace("/");
+      return;
+    }
+
     prepareLocalMedia()
       .then(() => socket.emit("join", currentUser))
       .catch(() => setSystemMessage("Allow camera and microphone, then go back and start Video Chat again."));

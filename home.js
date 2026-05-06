@@ -3,6 +3,7 @@ const displayNameInput = document.querySelector("#displayName");
 const emailInput = document.querySelector("#emailInput");
 const savedCodeInput = document.querySelector("#savedCodeInput");
 const ageCheck = document.querySelector("#ageCheck");
+const startButton = profileForm.querySelector("button[type='submit']");
 
 const storageKeys = {
   deviceId: "bk_device_id",
@@ -29,6 +30,11 @@ function loadSavedProfile() {
   displayNameInput.value = localStorage.getItem(storageKeys.name) || "";
   emailInput.value = localStorage.getItem(storageKeys.email) || "";
   savedCodeInput.value = localStorage.getItem(storageKeys.reconnectCode) || "";
+}
+
+function updateStartButtonText() {
+  const mode = getSelected("chatMode");
+  startButton.textContent = mode === "video" ? "Allow camera and start video chat" : "Start random chat";
 }
 
 async function requestVideoPermissionIfNeeded(mode) {
@@ -58,8 +64,15 @@ profileForm.addEventListener("submit", async (event) => {
   }
 
   const mode = getSelected("chatMode");
+  startButton.disabled = true;
+  startButton.textContent = mode === "video" ? "Requesting camera..." : "Starting...";
+
   const hasVideoPermission = await requestVideoPermissionIfNeeded(mode);
-  if (!hasVideoPermission) return;
+  if (!hasVideoPermission) {
+    startButton.disabled = false;
+    updateStartButtonText();
+    return;
+  }
 
   const profile = {
     name: displayNameInput.value.trim() || "Guest",
@@ -74,7 +87,13 @@ profileForm.addEventListener("submit", async (event) => {
   localStorage.setItem(storageKeys.name, profile.name);
   localStorage.setItem(storageKeys.email, profile.email);
   sessionStorage.setItem(storageKeys.pendingProfile, JSON.stringify(profile));
+  sessionStorage.setItem("bk_video_permission_ready", mode === "video" ? "true" : "false");
   window.location.assign(mode === "video" ? "/video.html" : "/chat.html");
 });
 
+document.querySelectorAll('input[name="chatMode"]').forEach((input) => {
+  input.addEventListener("change", updateStartButtonText);
+});
+
 loadSavedProfile();
+updateStartButtonText();
