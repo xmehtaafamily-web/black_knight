@@ -124,7 +124,7 @@ async function prepareLocalMedia() {
   }
 }
 
-async function createPeerConnection() {
+async function createPeerConnection(options = { requireLocal: true }) {
   if (peerConnection) return peerConnection;
 
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -136,8 +136,10 @@ async function createPeerConnection() {
     setVideoTileState();
   };
 
-  const stream = await getLocalStream();
-  stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+  if (options.requireLocal) {
+    const stream = await getLocalStream();
+    stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+  }
   return peerConnection;
 }
 
@@ -222,6 +224,13 @@ messageInput.addEventListener("input", () => {
 });
 
 cameraBtn?.addEventListener("click", () => {
+  if (!localStream) {
+    prepareLocalMedia()
+      .then(() => addMessage("System", "Camera and microphone are active."))
+      .catch(() => addMessage("System", "Camera permission is still blocked."));
+    return;
+  }
+
   const videoTrack = localStream?.getVideoTracks()[0];
   if (!videoTrack) return;
 
@@ -352,8 +361,14 @@ socket.on("video-signal", async (payload) => {
       if (peerConnection?.signalingState && peerConnection.signalingState !== "stable") return;
       videoActive = true;
       addMessage("System", "Incoming video call. Requesting camera permission...");
-      await prepareLocalMedia();
-      const connection = await createPeerConnection();
+      let hasLocalMedia = true;
+      try {
+        await prepareLocalMedia();
+      } catch (error) {
+        hasLocalMedia = false;
+        addMessage("System", "Camera is blocked on this device. You can still receive video.");
+      }
+      const connection = await createPeerConnection({ requireLocal: hasLocalMedia });
       cameraBtn?.classList.add("active");
       micBtn?.classList.add("active");
       await connection.setRemoteDescription(payload.description);
