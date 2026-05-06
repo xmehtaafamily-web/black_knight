@@ -27,6 +27,11 @@ body {
     var(--bg);
 }
 
+body.privacy-blur .video-stage,
+body.privacy-blur .messages {
+  filter: blur(14px);
+}
+
 button,
 input {
   font: inherit;
@@ -545,6 +550,24 @@ input[type="text"]:focus {
   z-index: 2;
   left: 14px;
   bottom: 12px;
+}
+
+.privacy-watermark {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  top: 12px;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 0.72rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.call-stage .self-preview .privacy-watermark {
+  display: none;
 }
 
 .call-controls {

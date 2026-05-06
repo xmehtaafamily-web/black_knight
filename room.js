@@ -7,6 +7,7 @@ const messageTemplate = document.querySelector("#messageTemplate");
 const matchName = document.querySelector("#matchName");
 const matchStatus = document.querySelector("#matchStatus");
 const reconnectCode = document.querySelector("#reconnectCode");
+const privacyWatermark = document.querySelector("#privacyWatermark");
 const copyCodeBtn = document.querySelector("#copyCodeBtn");
 const remoteLabel = document.querySelector("#remoteLabel");
 const cameraBtn = document.querySelector("#cameraBtn");
@@ -80,6 +81,10 @@ function updateMatchUI() {
 
   matchName.textContent = currentMatch.name;
   if (remoteLabel) remoteLabel.textContent = currentMatch.name;
+  if (privacyWatermark) {
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    privacyWatermark.textContent = `Black_knight · ${currentUser?.name || "Guest"} · ${time}`;
+  }
   matchStatus.textContent = "Online";
   matchStatus.classList.add("online");
 }
