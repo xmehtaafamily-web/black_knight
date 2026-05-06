@@ -4,6 +4,7 @@ const { Pool } = require("pg");
 
 const REPORTS_FILE = path.join(__dirname, "reports.json");
 const BANS_FILE = path.join(__dirname, "bans.json");
+const ANALYTICS_FILE = path.join(__dirname, "analytics.json");
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 function readJson(file) {
@@ -50,6 +51,16 @@ async function initDb() {
       contact_masked TEXT,
       reason TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS hourly_analytics (
+      hour TEXT PRIMARY KEY,
+      total INTEGER NOT NULL DEFAULT 0,
+      male INTEGER NOT NULL DEFAULT 0,
+      female INTEGER NOT NULL DEFAULT 0,
+      peak_active INTEGER NOT NULL DEFAULT 0
     )
   `);
 }
@@ -182,6 +193,64 @@ async function deleteBan(id) {
   await pool.query("DELETE FROM bans WHERE id = $1", [id]);
 }
 
+async function incrementHourlyAnalytics({ hour, gender, activeUsers }) {
+  if (!pool) {
+    const rows = readJson(ANALYTICS_FILE);
+    const row = rows.find((item) => item.hour === hour) || {
+      hour,
+      total: 0,
+      male: 0,
+      female: 0,
+      peakActive: 0,
+    };
+
+    if (!rows.includes(row)) rows.push(row);
+    row.total += 1;
+    if (gender === "male") row.male += 1;
+    if (gender === "female") row.female += 1;
+    row.peakActive = Math.max(row.peakActive, activeUsers);
+    writeJson(ANALYTICS_FILE, rows.slice(-500));
+    return;
+  }
+
+  await pool.query(
+    `
+      INSERT INTO hourly_analytics (hour, total, male, female, peak_active)
+      VALUES ($1, 1, $2, $3, $4)
+      ON CONFLICT (hour)
+      DO UPDATE SET
+        total = hourly_analytics.total + 1,
+        male = hourly_analytics.male + EXCLUDED.male,
+        female = hourly_analytics.female + EXCLUDED.female,
+        peak_active = GREATEST(hourly_analytics.peak_active, EXCLUDED.peak_active)
+    `,
+    [hour, gender === "male" ? 1 : 0, gender === "female" ? 1 : 0, activeUsers],
+  );
+}
+
+async function listHourlyAnalytics(limit = 48) {
+  if (!pool) {
+    return readJson(ANALYTICS_FILE)
+      .sort((a, b) => a.hour.localeCompare(b.hour))
+      .slice(-limit);
+  }
+
+  const result = await pool.query(
+    "SELECT hour, total, male, female, peak_active FROM hourly_analytics ORDER BY hour DESC LIMIT $1",
+    [limit],
+  );
+
+  return result.rows
+    .map((row) => ({
+      hour: row.hour,
+      total: row.total,
+      male: row.male,
+      female: row.female,
+      peakActive: row.peak_active,
+    }))
+    .reverse();
+}
+
 module.exports = {
   initDb,
   listReports,
@@ -190,5 +259,7 @@ module.exports = {
   listBans,
   saveBan,
   deleteBan,
+  incrementHourlyAnalytics,
+  listHourlyAnalytics,
   usingPostgres: Boolean(pool),
 };

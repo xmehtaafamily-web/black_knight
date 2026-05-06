@@ -58,6 +58,38 @@
         font-size: 1.6rem;
       }
 
+      .analytics-panel {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: white;
+      }
+
+      .chart-row {
+        display: grid;
+        grid-template-columns: 78px 1fr 92px;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.86rem;
+      }
+
+      .chart-bar {
+        position: relative;
+        height: 18px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3ef;
+      }
+
+      .chart-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+      }
+
       .login-box {
         display: grid;
         gap: 12px;
@@ -144,6 +176,8 @@
 
       <section id="statsGrid" class="stats-grid"></section>
 
+      <section id="analyticsPanel" class="analytics-panel"></section>
+
       <section id="reportsList" class="reports-list panel" style="padding: 14px;">
         <div class="empty-state">Loading reports...</div>
       </section>
@@ -160,6 +194,7 @@
       const reportsList = document.querySelector("#reportsList");
       const bansList = document.querySelector("#bansList");
       const statsGrid = document.querySelector("#statsGrid");
+      const analyticsPanel = document.querySelector("#analyticsPanel");
       const refreshBtn = document.querySelector("#refreshBtn");
       const logoutBtn = document.querySelector("#logoutBtn");
 
@@ -168,6 +203,7 @@
         reportsList.style.display = loggedIn ? "grid" : "none";
         bansList.style.display = loggedIn ? "grid" : "none";
         statsGrid.style.display = loggedIn ? "grid" : "none";
+        analyticsPanel.style.display = loggedIn ? "grid" : "none";
         refreshBtn.style.display = loggedIn ? "inline-block" : "none";
         logoutBtn.style.display = loggedIn ? "inline-block" : "none";
       }
@@ -200,6 +236,44 @@
         ]
           .map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`)
           .join("");
+      }
+
+      function renderAnalytics(analytics) {
+        const rows = analytics.rows || [];
+        const maxTotal = Math.max(1, ...rows.map((row) => row.total));
+        const formatter = new Intl.DateTimeFormat(undefined, {
+          hour: "2-digit",
+          day: "2-digit",
+          month: "short",
+        });
+
+        analyticsPanel.innerHTML = `
+          <div>
+            <p class="eyebrow">Analytics</p>
+            <h2 style="margin: 0;">Last 48 hours</h2>
+          </div>
+          <div class="stats-grid">
+            <article class="stat-card"><span>Total joins</span><strong>${analytics.totals.total}</strong></article>
+            <article class="stat-card"><span>Male</span><strong>${analytics.totals.male}</strong></article>
+            <article class="stat-card"><span>Female</span><strong>${analytics.totals.female}</strong></article>
+            <article class="stat-card"><span>Peak active</span><strong>${analytics.totals.peakActive}</strong></article>
+          </div>
+          ${
+            rows.length
+              ? rows
+                  .map(
+                    (row) => `
+                      <div class="chart-row">
+                        <span>${formatter.format(new Date(row.hour))}</span>
+                        <div class="chart-bar"><div class="chart-fill" style="width: ${(row.total / maxTotal) * 100}%"></div></div>
+                        <strong>${row.total} / M${row.male} F${row.female}</strong>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : '<div class="empty-state">No analytics yet.</div>'
+          }
+        `;
       }
 
       function renderReports(reports) {
@@ -240,6 +314,9 @@
       async function loadReports() {
         const statsResponse = await fetch("/api/admin/stats");
         if (statsResponse.ok) renderStats(await statsResponse.json());
+
+        const analyticsResponse = await fetch("/api/admin/analytics");
+        if (analyticsResponse.ok) renderAnalytics(await analyticsResponse.json());
 
         reportsList.innerHTML = '<div class="empty-state">Loading reports...</div>';
         const response = await fetch("/api/reports");

@@ -11,6 +11,8 @@ const {
   listBans,
   saveBan,
   deleteBan,
+  incrementHourlyAnalytics,
+  listHourlyAnalytics,
   usingPostgres,
 } = require("./db");
 
@@ -73,6 +75,34 @@ function publicUser(user) {
     gender: user.gender,
     verified: user.verified,
   };
+}
+
+function getHourKey(date = new Date()) {
+  return date.toISOString().slice(0, 13) + ":00:00.000Z";
+}
+
+async function trackJoin(user) {
+  const hourKey = getHourKey();
+  await incrementHourlyAnalytics({
+    hour: hourKey,
+    gender: user.gender,
+    activeUsers: users.size,
+  });
+}
+
+function summarizeAnalytics(rows) {
+  const totals = rows.reduce(
+    (acc, row) => {
+      acc.total += row.total;
+      acc.male += row.male;
+      acc.female += row.female;
+      acc.peakActive = Math.max(acc.peakActive, row.peakActive);
+      return acc;
+    },
+    { total: 0, male: 0, female: 0, peakActive: 0 },
+  );
+
+  return { totals, rows };
 }
 
 function preferencesFit(a, b) {
@@ -267,6 +297,11 @@ app.get("/api/admin/stats", requireAdmin, async (request, response) => {
   });
 });
 
+app.get("/api/admin/analytics", requireAdmin, async (request, response) => {
+  const rows = await listHourlyAnalytics(48);
+  response.json(summarizeAnalytics(rows));
+});
+
 app.get("/api/bans", requireAdmin, async (request, response) => {
   response.json(await listBans());
 });
@@ -356,6 +391,8 @@ io.on("connection", (socket) => {
       roomId: null,
     });
 
+    await trackJoin(users.get(socket.id));
+
     queueUser(socket);
   });
 
@@ -386,6 +423,8 @@ io.on("connection", (socket) => {
       verified: false,
       roomId: null,
     });
+
+    await trackJoin(users.get(socket.id));
 
     queueReconnectUser(socket, code);
   });
