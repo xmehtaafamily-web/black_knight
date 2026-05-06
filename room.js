@@ -36,6 +36,7 @@ let activeReconnectCode = "";
 let typingTimer = null;
 let remoteTypingTimer = null;
 let nextClickCount = 0;
+let localMediaReady = false;
 
 let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -109,6 +110,20 @@ async function getLocalStream() {
   return localStream;
 }
 
+async function prepareLocalMedia() {
+  if (pageMode !== "video" || localMediaReady) return;
+
+  try {
+    await getLocalStream();
+    localMediaReady = true;
+    cameraBtn?.classList.add("active");
+    micBtn?.classList.add("active");
+  } catch (error) {
+    addMessage("System", "Camera/microphone permission is required. Tap the address bar lock icon and allow camera and microphone.");
+    throw error;
+  }
+}
+
 async function createPeerConnection() {
   if (peerConnection) return peerConnection;
 
@@ -129,6 +144,7 @@ async function createPeerConnection() {
 async function startVideoCall() {
   if (videoActive) return;
   videoActive = true;
+  await prepareLocalMedia();
   const connection = await createPeerConnection();
   const offer = await connection.createOffer();
   await connection.setLocalDescription(offer);
@@ -153,6 +169,14 @@ function startMatching() {
 
   updateMatchUI();
   setSystemMessage(pageMode === "video" ? "Looking for a video chat match..." : "Looking for a chat match...");
+
+  if (pageMode === "video") {
+    prepareLocalMedia()
+      .then(() => socket.emit("join", currentUser))
+      .catch(() => setSystemMessage("Allow camera and microphone, then go back and start Video Chat again."));
+    return;
+  }
+
   socket.emit("join", currentUser);
 }
 
@@ -320,8 +344,10 @@ socket.on("video-signal", async (payload) => {
   if (!payload?.type || pageMode !== "video") return;
   try {
     if (payload.type === "offer") {
+      if (peerConnection?.signalingState && peerConnection.signalingState !== "stable") return;
       videoActive = true;
       addMessage("System", "Incoming video call. Requesting camera permission...");
+      await prepareLocalMedia();
       const connection = await createPeerConnection();
       cameraBtn?.classList.add("active");
       micBtn?.classList.add("active");
