@@ -105,7 +105,19 @@ async function getLocalStream() {
     throw new Error("Camera is not available in this browser.");
   }
 
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      frameRate: { ideal: 30, max: 30 },
+      facingMode: "user",
+    },
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
   localVideo.srcObject = localStream;
   setVideoTileState();
   return localStream;
@@ -144,6 +156,19 @@ async function createPeerConnection(options = { requireLocal: true }) {
     peerConnection.addTransceiver("video", { direction: "recvonly" });
     peerConnection.addTransceiver("audio", { direction: "recvonly" });
   }
+  peerConnection.addEventListener("connectionstatechange", () => {
+    if (peerConnection.connectionState !== "connected") return;
+
+    peerConnection.getSenders().forEach((sender) => {
+      if (sender.track?.kind !== "video") return;
+      const parameters = sender.getParameters();
+      parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+      parameters.encodings[0].maxBitrate = 1500000;
+      parameters.encodings[0].maxFramerate = 30;
+      sender.setParameters(parameters).catch(() => {});
+    });
+  });
+
   return peerConnection;
 }
 

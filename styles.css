@@ -509,6 +509,10 @@ input[type="text"]:focus {
   opacity: 1;
 }
 
+.video-tile.has-video .camera-icon {
+  display: none;
+}
+
 .video-tile.remote {
   background:
     linear-gradient(160deg, rgba(23, 32, 27, 0.2), rgba(23, 32, 27, 0.62)),
