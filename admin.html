@@ -12,27 +12,74 @@
     />
     <link rel="stylesheet" href="./styles.css" />
     <style>
-      .admin-shell {
-        width: min(980px, calc(100% - 32px));
-        margin: 24px auto;
+      body {
+        background: #f5f7f6;
       }
 
-      .admin-header {
+      .admin-app {
+        width: min(1180px, calc(100% - 28px));
+        margin: 18px auto;
+      }
+
+      .admin-top {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 14px;
+        margin-bottom: 14px;
       }
 
-      .reports-list {
+      .admin-title h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      .admin-title p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .admin-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .admin-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 14px;
+        cursor: pointer;
+        color: white;
+        background: var(--ink);
+        font-weight: 800;
+      }
+
+      .admin-btn.secondary {
+        color: var(--ink);
+        background: #e8efea;
+      }
+
+      .login-box,
+      .admin-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 12px 34px rgba(29, 43, 35, 0.08);
+      }
+
+      .login-box {
         display: grid;
-        gap: 10px;
+        gap: 12px;
+        width: min(420px, 100%);
+        padding: 18px;
       }
 
       .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        grid-template-columns: repeat(5, minmax(140px, 1fr));
         gap: 10px;
         margin-bottom: 14px;
       }
@@ -40,45 +87,134 @@
       .stat-card {
         border: 1px solid var(--line);
         border-radius: 8px;
-        padding: 12px;
+        padding: 14px;
         background: white;
       }
 
       .stat-card span {
         display: block;
         color: var(--muted);
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 800;
         text-transform: uppercase;
       }
 
       .stat-card strong {
         display: block;
-        margin-top: 6px;
-        font-size: 1.6rem;
+        margin-top: 8px;
+        font-size: 1.8rem;
       }
 
-      .analytics-panel {
+      .admin-grid {
         display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        gap: 14px;
+      }
+
+      .admin-card {
+        overflow: hidden;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 12px;
-        margin-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px;
+      }
+
+      .card-header h2 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .filter-tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .filter-tabs button,
+      .row-action {
         border: 1px solid var(--line);
         border-radius: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        color: var(--ink);
+        background: #f6faf7;
+        font-weight: 800;
+      }
+
+      .filter-tabs button.active {
+        color: white;
+        border-color: var(--accent);
+        background: var(--accent);
+      }
+
+      .admin-list {
+        display: grid;
+        gap: 0;
+      }
+
+      .admin-row {
+        display: grid;
+        grid-template-columns: 1.1fr 1.4fr auto;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        padding: 13px 14px;
+      }
+
+      .admin-row:last-child {
+        border-bottom: 0;
+      }
+
+      .row-title {
+        display: grid;
+        gap: 4px;
+      }
+
+      .row-title strong {
+        font-size: 0.96rem;
+      }
+
+      .row-title span,
+      .row-detail {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .row-action.danger {
+        color: white;
+        border-color: var(--danger);
+        background: var(--danger);
+      }
+
+      .analytics-body {
+        display: grid;
+        gap: 10px;
         padding: 14px;
-        background: white;
       }
 
       .chart-row {
         display: grid;
-        grid-template-columns: 78px 1fr 92px;
+        grid-template-columns: 78px 1fr 98px;
         align-items: center;
         gap: 10px;
-        font-size: 0.86rem;
+        font-size: 0.82rem;
       }
 
       .chart-bar {
-        position: relative;
-        height: 18px;
+        height: 16px;
         overflow: hidden;
         border-radius: 999px;
         background: #edf3ef;
@@ -90,78 +226,40 @@
         background: var(--accent);
       }
 
-      .login-box {
-        display: grid;
-        gap: 12px;
-        width: min(420px, 100%);
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 18px;
-        background: white;
+      .empty-admin {
+        padding: 24px;
+        color: var(--muted);
+        text-align: center;
+        font-weight: 700;
       }
 
-      .admin-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-      }
+      @media (max-width: 920px) {
+        .stats-grid,
+        .admin-grid {
+          grid-template-columns: 1fr;
+        }
 
-      .report-card {
-        display: grid;
-        gap: 8px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 14px;
-        background: white;
-      }
+        .admin-row {
+          grid-template-columns: 1fr;
+        }
 
-      .report-card.reviewed {
-        opacity: 0.72;
-      }
-
-      .report-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .secondary-action {
-        border: 0;
-        border-radius: 8px;
-        padding: 10px 12px;
-        cursor: pointer;
-        color: #29362f;
-        background: #edf3ef;
-        font-weight: 800;
-      }
-
-      .danger-action {
-        color: white;
-        background: var(--danger);
-      }
-
-      .report-card strong {
-        font-size: 1rem;
-      }
-
-      .report-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
+        .row-actions {
+          justify-content: flex-start;
+        }
       }
     </style>
   </head>
   <body>
-    <main class="admin-shell">
-      <header class="admin-header">
-        <div>
+    <main class="admin-app">
+      <header class="admin-top">
+        <div class="admin-title">
           <p class="eyebrow">Black_knight Admin</p>
-          <h1 style="max-width: none; font-size: 2.4rem;">Reports</h1>
+          <h1>Operations Dashboard</h1>
+          <p>Live users, hourly analytics, reports, and bans.</p>
         </div>
         <div class="admin-actions">
-          <button id="refreshBtn" class="primary-action" type="button">Refresh</button>
-          <button id="logoutBtn" class="primary-action" type="button">Logout</button>
+          <button id="refreshBtn" class="admin-btn secondary" type="button">Refresh</button>
+          <button id="logoutBtn" class="admin-btn" type="button">Logout</button>
         </div>
       </header>
 
@@ -170,20 +268,33 @@
           Admin password
           <input id="passwordInput" type="password" placeholder="Enter admin password" />
         </label>
-        <button class="primary-action" type="submit">Login</button>
+        <button class="admin-btn" type="submit">Login</button>
         <p id="loginError" style="margin: 0; color: var(--danger);"></p>
       </form>
 
       <section id="statsGrid" class="stats-grid"></section>
 
-      <section id="analyticsPanel" class="analytics-panel"></section>
+      <section class="admin-grid">
+        <article id="analyticsCard" class="admin-card"></article>
 
-      <section id="reportsList" class="reports-list panel" style="padding: 14px;">
-        <div class="empty-state">Loading reports...</div>
+        <article class="admin-card">
+          <div class="card-header">
+            <h2>Bans</h2>
+          </div>
+          <div id="bansList" class="admin-list"></div>
+        </article>
       </section>
 
-      <section id="bansList" class="reports-list panel" style="padding: 14px; margin-top: 14px;">
-        <div class="empty-state">Loading bans...</div>
+      <section class="admin-card" style="margin-top: 14px;">
+        <div class="card-header">
+          <h2>Reports</h2>
+          <div class="filter-tabs">
+            <button class="active" type="button" data-filter="all">All</button>
+            <button type="button" data-filter="open">Open</button>
+            <button type="button" data-filter="reviewed">Reviewed</button>
+          </div>
+        </div>
+        <div id="reportsList" class="admin-list"></div>
       </section>
     </main>
 
@@ -191,25 +302,19 @@
       const loginForm = document.querySelector("#loginForm");
       const passwordInput = document.querySelector("#passwordInput");
       const loginError = document.querySelector("#loginError");
-      const reportsList = document.querySelector("#reportsList");
-      const bansList = document.querySelector("#bansList");
-      const statsGrid = document.querySelector("#statsGrid");
-      const analyticsPanel = document.querySelector("#analyticsPanel");
       const refreshBtn = document.querySelector("#refreshBtn");
       const logoutBtn = document.querySelector("#logoutBtn");
+      const statsGrid = document.querySelector("#statsGrid");
+      const analyticsCard = document.querySelector("#analyticsCard");
+      const reportsList = document.querySelector("#reportsList");
+      const bansList = document.querySelector("#bansList");
+      const filterTabs = document.querySelector(".filter-tabs");
 
-      function setLoggedIn(loggedIn) {
-        loginForm.style.display = loggedIn ? "none" : "grid";
-        reportsList.style.display = loggedIn ? "grid" : "none";
-        bansList.style.display = loggedIn ? "grid" : "none";
-        statsGrid.style.display = loggedIn ? "grid" : "none";
-        analyticsPanel.style.display = loggedIn ? "grid" : "none";
-        refreshBtn.style.display = loggedIn ? "inline-block" : "none";
-        logoutBtn.style.display = loggedIn ? "inline-block" : "none";
-      }
+      let currentReports = [];
+      let reportFilter = "all";
 
       function escapeHtml(value) {
-        return String(value)
+        return String(value ?? "")
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
@@ -218,22 +323,29 @@
       }
 
       function formatDate(value) {
-        return new Intl.DateTimeFormat(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(value));
+        return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
       }
 
-      let currentReports = [];
-      let currentBans = [];
+      function setLoggedIn(loggedIn) {
+        loginForm.style.display = loggedIn ? "none" : "grid";
+        statsGrid.style.display = loggedIn ? "grid" : "none";
+        analyticsCard.style.display = loggedIn ? "block" : "none";
+        reportsList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        bansList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        refreshBtn.style.display = loggedIn ? "inline-block" : "none";
+        logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+      }
 
       function renderStats(stats) {
-        statsGrid.innerHTML = [
+        const items = [
           ["Online", stats.onlineUsers],
           ["Waiting", stats.waitingUsers],
           ["Open reports", stats.openReports],
+          ["Total reports", stats.totalReports],
           ["Total bans", stats.totalBans],
-        ]
+        ];
+
+        statsGrid.innerHTML = items
           .map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`)
           .join("");
       }
@@ -241,141 +353,120 @@
       function renderAnalytics(analytics) {
         const rows = analytics.rows || [];
         const maxTotal = Math.max(1, ...rows.map((row) => row.total));
-        const formatter = new Intl.DateTimeFormat(undefined, {
-          hour: "2-digit",
-          day: "2-digit",
-          month: "short",
-        });
+        const formatter = new Intl.DateTimeFormat(undefined, { hour: "2-digit", day: "2-digit", month: "short" });
 
-        analyticsPanel.innerHTML = `
-          <div>
-            <p class="eyebrow">Analytics</p>
-            <h2 style="margin: 0;">Last 48 hours</h2>
+        analyticsCard.innerHTML = `
+          <div class="card-header"><h2>Hourly Analytics</h2><span class="row-detail">Last 48 hours</span></div>
+          <div class="analytics-body">
+            ${
+              rows.length
+                ? rows
+                    .map(
+                      (row) => `
+                        <div class="chart-row">
+                          <span>${formatter.format(new Date(row.hour))}</span>
+                          <div class="chart-bar"><div class="chart-fill" style="width: ${(row.total / maxTotal) * 100}%"></div></div>
+                          <strong>${row.total} / M${row.male} F${row.female}</strong>
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : '<div class="empty-admin">No analytics yet.</div>'
+            }
           </div>
-          <div class="stats-grid">
-            <article class="stat-card"><span>Total joins</span><strong>${analytics.totals.total}</strong></article>
-            <article class="stat-card"><span>Male</span><strong>${analytics.totals.male}</strong></article>
-            <article class="stat-card"><span>Female</span><strong>${analytics.totals.female}</strong></article>
-            <article class="stat-card"><span>Peak active</span><strong>${analytics.totals.peakActive}</strong></article>
-          </div>
-          ${
-            rows.length
-              ? rows
-                  .map(
-                    (row) => `
-                      <div class="chart-row">
-                        <span>${formatter.format(new Date(row.hour))}</span>
-                        <div class="chart-bar"><div class="chart-fill" style="width: ${(row.total / maxTotal) * 100}%"></div></div>
-                        <strong>${row.total} / M${row.male} F${row.female}</strong>
-                      </div>
-                    `,
-                  )
-                  .join("")
-              : '<div class="empty-state">No analytics yet.</div>'
-          }
         `;
       }
 
-      function renderReports(reports) {
-        currentReports = reports;
-
-        if (!reports.length) {
-          reportsList.innerHTML = '<div class="empty-state">No reports yet.</div>';
-          return;
-        }
-
-        reportsList.innerHTML = reports
-          .map(
-            (report) => `
-              <article class="report-card ${report.status === "reviewed" ? "reviewed" : ""}">
-                <strong>${escapeHtml(report.matchName)}</strong>
-                <p style="margin: 0;">${escapeHtml(report.reason)}</p>
-                <div class="report-meta">
-                  <span class="live-dot">${escapeHtml(report.status || "open")}</span>
-                  <span class="live-dot">${escapeHtml(report.mode)}</span>
-                  <span class="live-dot">By ${escapeHtml(report.reporterName)}</span>
-                  <span class="live-dot">Reported ${escapeHtml(report.matchContactMasked || "unverified legacy")}</span>
-                  <span class="live-dot">${formatDate(report.createdAt)}</span>
-                </div>
-                <div class="report-actions">
-                  <button class="secondary-action" type="button" data-action="review" data-id="${escapeHtml(report.id)}">
-                    Mark reviewed
-                  </button>
-                  <button class="secondary-action danger-action" type="button" data-action="ban" data-id="${escapeHtml(report.id)}">
-                    Ban verified user
-                  </button>
-                </div>
-              </article>
-            `,
-          )
-          .join("");
+      function renderReports() {
+        const reports = currentReports.filter((report) => reportFilter === "all" || (report.status || "open") === reportFilter);
+        reportsList.innerHTML = reports.length
+          ? reports
+              .map(
+                (report) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(report.matchName)}</strong>
+                      <span>${escapeHtml(report.status || "open")} · ${escapeHtml(report.mode)} · ${formatDate(report.createdAt)}</span>
+                    </div>
+                    <div class="row-detail">
+                      ${escapeHtml(report.reason)}<br />
+                      By ${escapeHtml(report.reporterName)} · Reported ${escapeHtml(report.matchContactMasked || "guest")}
+                    </div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="review" data-id="${escapeHtml(report.id)}">Review</button>
+                      <button class="row-action danger" type="button" data-action="ban" data-id="${escapeHtml(report.id)}">Ban</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No reports for this filter.</div>';
       }
 
-      async function loadReports() {
+      function renderBans(bans) {
+        bansList.innerHTML = bans.length
+          ? bans
+              .map(
+                (ban) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(ban.contactMasked || ban.name || "Unknown")}</strong>
+                      <span>${formatDate(ban.createdAt)}</span>
+                    </div>
+                    <div class="row-detail">${escapeHtml(ban.reason || "Admin ban")}</div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="unban" data-id="${escapeHtml(ban.id)}">Unban</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No bans yet.</div>';
+      }
+
+      async function loadDashboard() {
         const statsResponse = await fetch("/api/admin/stats");
+        if (statsResponse.status === 401) {
+          setLoggedIn(false);
+          return;
+        }
         if (statsResponse.ok) renderStats(await statsResponse.json());
 
         const analyticsResponse = await fetch("/api/admin/analytics");
         if (analyticsResponse.ok) renderAnalytics(await analyticsResponse.json());
 
-        reportsList.innerHTML = '<div class="empty-state">Loading reports...</div>';
-        const response = await fetch("/api/reports");
-        if (response.status === 401) {
-          setLoggedIn(false);
-          return;
+        const reportsResponse = await fetch("/api/reports");
+        if (reportsResponse.ok) {
+          currentReports = await reportsResponse.json();
+          renderReports();
         }
-        renderReports(await response.json());
 
         const bansResponse = await fetch("/api/bans");
-        if (bansResponse.ok) {
-          currentBans = await bansResponse.json();
-          bansList.innerHTML = currentBans.length
-            ? currentBans
-                .map(
-                  (ban) => `
-                    <article class="report-card">
-                      <strong>${escapeHtml(ban.contactMasked || ban.name || "Unknown")}</strong>
-                      <p style="margin: 0;">${escapeHtml(ban.reason || "Admin ban")}</p>
-                      <div class="report-actions">
-                        <button class="secondary-action" type="button" data-action="unban" data-id="${escapeHtml(ban.id)}">
-                          Unban
-                        </button>
-                      </div>
-                    </article>
-                  `,
-                )
-                .join("")
-            : '<div class="empty-state">No bans yet.</div>';
-        }
+        if (bansResponse.ok) renderBans(await bansResponse.json());
       }
 
       async function checkLogin() {
         const response = await fetch("/api/admin/me");
         const data = await response.json();
         setLoggedIn(data.loggedIn);
-        if (data.loggedIn) {
-          loadReports();
-        }
+        if (data.loggedIn) loadDashboard();
       }
 
       loginForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         loginError.textContent = "";
-
         const response = await fetch("/api/admin/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ password: passwordInput.value }),
         });
-
         if (!response.ok) {
           loginError.textContent = "Wrong password.";
           return;
         }
-
         passwordInput.value = "";
         setLoggedIn(true);
-        loadReports();
+        loadDashboard();
       });
 
       logoutBtn.addEventListener("click", async () => {
@@ -383,12 +474,19 @@
         setLoggedIn(false);
       });
 
-      refreshBtn.addEventListener("click", loadReports);
+      refreshBtn.addEventListener("click", loadDashboard);
+
+      filterTabs.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-filter]");
+        if (!button) return;
+        reportFilter = button.dataset.filter;
+        filterTabs.querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button));
+        renderReports();
+      });
 
       reportsList.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action]");
         if (!button) return;
-
         const report = currentReports.find((item) => item.id === button.dataset.id);
         if (!report) return;
 
@@ -398,39 +496,31 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "reviewed" }),
           });
-          loadReports();
         }
 
         if (button.dataset.action === "ban") {
-          const banTarget = report.matchContactMasked || report.matchName;
-          const confirmed = window.confirm(`Ban "${banTarget}"?`);
+          const confirmed = window.confirm(`Ban "${report.matchContactMasked || report.matchName}"?`);
           if (!confirmed) return;
-
           await fetch("/api/bans", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: report.matchName,
-              contact: report.matchContact,
-              reason: report.reason,
-            }),
+            body: JSON.stringify({ name: report.matchName, contact: report.matchContact, reason: report.reason }),
           });
-
           await fetch(`/api/reports/${encodeURIComponent(report.id)}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "reviewed" }),
           });
-
-          loadReports();
         }
+
+        loadDashboard();
       });
 
       bansList.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-action='unban']");
         if (!button) return;
         await fetch(`/api/bans/${encodeURIComponent(button.dataset.id)}`, { method: "DELETE" });
-        loadReports();
+        loadDashboard();
       });
 
       checkLogin();
