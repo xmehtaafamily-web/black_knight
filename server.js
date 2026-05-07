@@ -551,6 +551,7 @@ io.on("connection", (socket) => {
       "video-signal": ["video", 90, 10000],
       "join-public-room": ["roomJoin", 8, 60000],
       "public-room-message": ["roomMessage", 18, 10000],
+      "walkie-audio": ["walkieAudio", 90, 10000],
     };
     const limit = limits[eventName];
     if (limit && !security.rateLimit(`${limit[0]}:${session.id}`, limit[1], limit[2]).allowed) {
@@ -834,6 +835,15 @@ io.on("connection", (socket) => {
     socket.to(`walkie:${frequency}`).emit("walkie-voice", {
       from: socket.id,
       speaking: Boolean(payload.speaking),
+    });
+  });
+
+  socket.on("walkie-audio", (payload = {}) => {
+    const frequency = socket.data.walkieFrequency;
+    if (!frequency || typeof payload.audio !== "string") return;
+    socket.to(`walkie:${frequency}`).emit("walkie-audio", {
+      audio: payload.audio.slice(0, 90000),
+      mimeType: security.sanitizeText(payload.mimeType || "audio/webm", 40),
     });
   });
 

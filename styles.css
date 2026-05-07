@@ -2214,6 +2214,23 @@ td {
   gap: 12px;
 }
 
+.voice-status {
+  display: none;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 999px;
+  color: #07111f;
+  background: linear-gradient(135deg, #00f0ff, #8b5cf6);
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.22);
+  font-weight: 900;
+}
+
+.voice-status.visible {
+  display: flex;
+}
+
 .talk-btn {
   min-height: 78px !important;
   border-radius: 999px !important;
