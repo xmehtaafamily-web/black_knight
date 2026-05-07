@@ -8,6 +8,7 @@ const startButton = profileForm.querySelector("button[type='submit']");
 const storageKeys = {
   deviceId: "bk_device_id",
   name: "bk_display_name",
+  gender: "bk_gender",
   email: "bk_email",
   reconnectCode: "bk_reconnect_code",
   reconnectHistory: "bk_reconnect_history",
@@ -92,6 +93,13 @@ profileForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const requiredName = displayNameInput.value.trim();
+  if (!requiredName) {
+    window.alert("Please enter a display name first. Name is required for Chat, Video Chat and Walkie Talkie.");
+    displayNameInput.focus();
+    return;
+  }
+
   const mode = getSelected("chatMode");
   startButton.disabled = true;
   startButton.textContent = mode === "video" ? "Requesting camera..." : "Starting...";
@@ -104,7 +112,7 @@ profileForm.addEventListener("submit", async (event) => {
   }
 
   const profile = {
-    name: displayNameInput.value.trim() || "Guest",
+    name: requiredName,
     email: "",
     deviceId: getDeviceId(),
     savedCode: savedCodeInput.value.trim().toUpperCase(),
@@ -116,6 +124,7 @@ profileForm.addEventListener("submit", async (event) => {
   };
 
   localStorage.setItem(storageKeys.name, profile.name);
+  localStorage.setItem(storageKeys.gender, profile.gender);
   localStorage.setItem(storageKeys.email, profile.email);
   sessionStorage.setItem(storageKeys.pendingProfile, JSON.stringify(profile));
   sessionStorage.setItem("bk_video_permission_ready", mode === "video" ? "true" : "false");
@@ -233,4 +242,19 @@ function cleanupDuplicateHomepageSections() {
 
 window.addEventListener("DOMContentLoaded", cleanupDuplicateHomepageSections);
 window.setTimeout(cleanupDuplicateHomepageSections, 100);
+
+document.addEventListener("click", (event) => {
+  const walkieLink = event.target.closest('a[href$="walkie.html"], a[href="/walkie.html"]');
+  if (!walkieLink) return;
+  if (!displayNameInput.value.trim() && !localStorage.getItem(storageKeys.name)) {
+    event.preventDefault();
+    window.alert("Walkie Talkie use karne ke liye pehle display name fill karo.");
+    displayNameInput.focus();
+    return;
+  }
+  if (displayNameInput.value.trim()) {
+    localStorage.setItem(storageKeys.name, displayNameInput.value.trim());
+    localStorage.setItem(storageKeys.gender, getSelected("gender"));
+  }
+});
 renderRecentConnections();

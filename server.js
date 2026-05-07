@@ -39,6 +39,7 @@ const roomCounts = new Map();
 const roomMessages = new Map();
 const confessions = [];
 const walkieChannels = new Map();
+const walkieProfiles = new Map();
 
 const publicRooms = [
   { id: "3am-thoughts", name: "3AM Thoughts", voiceReady: false },
@@ -54,6 +55,24 @@ function normalizeWalkieFrequency(value) {
   const number = Number(raw);
   if (!Number.isFinite(number) || number < 30 || number > 100) return "";
   return number.toFixed(2);
+}
+
+function getWalkieStats(frequency) {
+  const members = walkieChannels.get(frequency) || new Set();
+  let male = 0;
+  let female = 0;
+  for (const socketId of members) {
+    const profile = walkieProfiles.get(socketId);
+    if (profile?.gender === "female") female += 1;
+    else if (profile?.gender === "male") male += 1;
+  }
+  return {
+    frequency,
+    activeUsers: members.size,
+    male,
+    female,
+    limit: 50,
+  };
 }
 
 app.set("trust proxy", true);
@@ -446,11 +465,7 @@ app.get("/api/walkie/frequencies", (request, response) => {
   const starter = ["30.10", "50.48", "70.70", "88.80", "99.99"];
   const frequencies = Array.from(new Set([...active, ...starter]));
   response.json(
-    frequencies.map((frequency) => ({
-      frequency,
-      activeUsers: walkieChannels.get(frequency)?.size || 0,
-      limit: 50,
-    })),
+    frequencies.map((frequency) => getWalkieStats(frequency)),
   );
 });
 
@@ -557,7 +572,11 @@ io.on("connection", (socket) => {
 
   socket.on("join", async (profile = {}) => {
     const session = socket.data.guestSession;
-    const name = security.sanitizeText(profile.name || "Guest", 24) || "Guest";
+    const name = security.sanitizeText(profile.name || "", 24);
+    if (!name) {
+      socket.emit("safety-warning", { message: "Display name is required before starting chat or video." });
+      return;
+    }
     const gender = profile.gender === "female" ? "female" : "male";
     const preference = profile.preference === "male" ? "male" : "female";
     const mode = profile.mode === "video" ? "video" : "text";
@@ -595,7 +614,11 @@ io.on("connection", (socket) => {
 
   socket.on("join-reconnect", async (profile = {}) => {
     const session = socket.data.guestSession;
-    const name = security.sanitizeText(profile.name || "Guest", 24) || "Guest";
+    const name = security.sanitizeText(profile.name || "", 24);
+    if (!name) {
+      socket.emit("waiting", { message: "Display name is required before reconnecting." });
+      return;
+    }
     const mode = profile.mode === "video" ? "video" : "text";
     const code = String(profile.code || "").trim().toUpperCase();
 
@@ -762,6 +785,13 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const name = security.sanitizeText(payload.name || "", 24);
+    const gender = payload.gender === "female" ? "female" : payload.gender === "male" ? "male" : "";
+    if (!name || !gender) {
+      socket.emit("walkie-error", { message: "Name and gender are required. Go to home page and fill profile first." });
+      return;
+    }
+
     const usersOnFrequency = walkieChannels.get(frequency) || new Set();
     if (!usersOnFrequency.has(socket.id) && usersOnFrequency.size >= 50) {
       socket.emit("walkie-error", { message: "This frequency is full. Maximum 50 users allowed." });
@@ -771,24 +801,17 @@ io.on("connection", (socket) => {
     for (const [channel, members] of walkieChannels.entries()) {
       if (members.delete(socket.id)) {
         socket.leave(`walkie:${channel}`);
-        io.to(`walkie:${channel}`).emit("walkie-presence", {
-          frequency: channel,
-          activeUsers: members.size,
-          limit: 50,
-        });
+        io.to(`walkie:${channel}`).emit("walkie-presence", getWalkieStats(channel));
       }
     }
 
+    walkieProfiles.set(socket.id, { name, gender });
     usersOnFrequency.add(socket.id);
     walkieChannels.set(frequency, usersOnFrequency);
     socket.join(`walkie:${frequency}`);
     socket.data.walkieFrequency = frequency;
-    socket.emit("walkie-joined", { frequency, activeUsers: usersOnFrequency.size, limit: 50 });
-    io.to(`walkie:${frequency}`).emit("walkie-presence", {
-      frequency,
-      activeUsers: usersOnFrequency.size,
-      limit: 50,
-    });
+    socket.emit("walkie-joined", getWalkieStats(frequency));
+    io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
   });
 
   socket.on("walkie-message", (payload = {}) => {
@@ -823,13 +846,10 @@ io.on("connection", (socket) => {
     if (user?.roomId) endMatch(user.roomId, "Match disconnected.");
     for (const [frequency, members] of walkieChannels.entries()) {
       if (members.delete(socket.id)) {
-        io.to(`walkie:${frequency}`).emit("walkie-presence", {
-          frequency,
-          activeUsers: members.size,
-          limit: 50,
-        });
+        io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
       }
     }
+    walkieProfiles.delete(socket.id);
     users.delete(socket.id);
   });
 });

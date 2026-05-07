@@ -709,6 +709,7 @@ window.addSystemMessage = (text) => addMessage("System", text);
         videoArea.classList.remove("video-expanded");
         return;
       }
+      videoArea.classList.add("video-expanded");
       if (videoArea.requestFullscreen) {
         await videoArea.requestFullscreen();
         return;
@@ -718,6 +719,10 @@ window.addSystemMessage = (text) => addMessage("System", text);
     }
     videoArea.classList.toggle("video-expanded");
   }
+
+  document.addEventListener("fullscreenchange", () => {
+    videoArea.classList.toggle("video-expanded", document.fullscreenElement === videoArea);
+  });
 
   videoArea.addEventListener("dblclick", toggleFullscreen);
   videoArea.addEventListener(

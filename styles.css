@@ -2105,11 +2105,14 @@ td {
   min-height: 100vh !important;
   border-radius: 0 !important;
   background: #020617 !important;
+  overflow: hidden !important;
 }
 
 .call-stage:fullscreen .video-tile.remote,
 .video-stage:fullscreen .video-tile.remote,
 .video-expanded .video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   max-height: none !important;
@@ -2117,9 +2120,32 @@ td {
   border-radius: 0 !important;
 }
 
+.call-stage:fullscreen .video-tile.remote video,
+.video-stage:fullscreen .video-tile.remote video,
+.video-expanded .video-tile.remote video,
+.call-stage:fullscreen video,
+.video-stage:fullscreen video,
+.video-expanded video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+}
+
+.call-stage:fullscreen .camera-icon,
+.video-stage:fullscreen .camera-icon,
+.video-expanded .camera-icon {
+  display: none !important;
+}
+
 .call-stage:fullscreen .self-preview,
 .video-stage:fullscreen .self-preview,
 .video-expanded .self-preview {
+  position: absolute !important;
+  z-index: 4 !important;
   right: 14px !important;
   bottom: 14px !important;
   width: min(34vw, 180px) !important;
@@ -2166,13 +2192,20 @@ td {
   color: rgba(248, 250, 252, 0.86);
 }
 
+.frequency-card small {
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .frequency-card.active {
   color: #07111f !important;
   background: linear-gradient(135deg, #00f0ff, #8b5cf6) !important;
 }
 
 .frequency-card.active span,
-.frequency-card.active strong {
+.frequency-card.active strong,
+.frequency-card.active small {
   color: #07111f;
 }
 
@@ -2193,6 +2226,20 @@ td {
 .talk-btn.active {
   background: linear-gradient(135deg, #ef4444, #8b5cf6) !important;
   box-shadow: 0 0 34px rgba(239, 68, 68, 0.32) !important;
+}
+
+.walkie-quick-link {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  margin-top: 12px;
+  border: 1px solid rgba(0, 240, 255, 0.36);
+  border-radius: 18px;
+  color: #07111f !important;
+  background: linear-gradient(135deg, #00f0ff, #8b5cf6);
+  box-shadow: 0 0 28px rgba(0, 240, 255, 0.22);
+  font-weight: 900;
+  text-decoration: none;
 }
 
 @media (max-width: 520px) {

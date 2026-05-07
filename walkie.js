@@ -13,6 +13,22 @@ const talkBtn = document.querySelector("#talkBtn");
 let activeFrequency = "";
 let localAudioStream = null;
 
+function getProfile() {
+  return {
+    name: localStorage.getItem("bk_display_name") || "",
+    gender: localStorage.getItem("bk_gender") || "",
+  };
+}
+
+function requireProfile() {
+  const profile = getProfile();
+  if (!profile.name || !profile.gender) {
+    addMessage("System", "Pehle home page par display name aur gender fill karo. Bina profile Walkie Talkie join nahi hoga.");
+    return null;
+  }
+  return profile;
+}
+
 function addMessage(author, text) {
   if (messages.querySelector(".empty-state")) messages.innerHTML = "";
   const node = document.createElement("article");
@@ -31,6 +47,7 @@ function renderFrequencies(rows) {
         <button class="frequency-card ${item.frequency === activeFrequency ? "active" : ""}" data-frequency="${item.frequency}" type="button">
           <span>${item.frequency} FM</span>
           <strong>${item.activeUsers}/${item.limit}</strong>
+          <small>M ${item.male || 0} · F ${item.female || 0}</small>
         </button>
       `,
     )
@@ -51,9 +68,11 @@ async function loadFrequencies() {
 frequencyGrid.addEventListener("click", (event) => {
   const button = event.target.closest("[data-frequency]");
   if (!button) return;
+  const profile = requireProfile();
+  if (!profile) return;
   activeFrequency = button.dataset.frequency;
   frequencyInput.value = activeFrequency;
-  socket.emit("join-walkie", { frequency: activeFrequency });
+  socket.emit("join-walkie", { frequency: activeFrequency, ...profile });
 });
 
 frequencyForm.addEventListener("submit", (event) => {
@@ -63,9 +82,11 @@ frequencyForm.addEventListener("submit", (event) => {
     addMessage("System", "Frequency 30.00 se 100.00 ke beech honi chahiye.");
     return;
   }
+  const profile = requireProfile();
+  if (!profile) return;
   activeFrequency = frequency;
   frequencyInput.value = frequency;
-  socket.emit("join-walkie", { frequency });
+  socket.emit("join-walkie", { frequency, ...profile });
 });
 
 form.addEventListener("submit", (event) => {
@@ -115,7 +136,7 @@ talkBtn.addEventListener("touchstart", (event) => {
 
 socket.on("walkie-joined", (payload) => {
   activeFrequency = payload.frequency;
-  statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit}`;
+  statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
   talkBtn.disabled = false;
   addMessage("System", `Joined ${payload.frequency} FM.`);
   loadFrequencies();
@@ -123,7 +144,7 @@ socket.on("walkie-joined", (payload) => {
 
 socket.on("walkie-presence", (payload) => {
   if (payload.frequency === activeFrequency) {
-    statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit}`;
+    statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
   }
   loadFrequencies();
 });
