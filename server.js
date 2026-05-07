@@ -57,6 +57,18 @@ function normalizeWalkieFrequency(value) {
   return number.toFixed(2);
 }
 
+const radioLockedFrequencies = {
+  "98.30": { name: "Radio Mirchi", pageUrl: "https://onlineradiofm.in/stations/mirchi" },
+  "93.50": { name: "Red FM", pageUrl: "https://onlineradiofm.com.in/red-fm" },
+  "92.70": { name: "Big FM", pageUrl: "https://onlineradiofm.in/stations/big" },
+  "104.80": { name: "Ishq FM", pageUrl: "https://onlineradiofm.in/stations/ishq" },
+  "106.40": { name: "AIR FM Gold", pageUrl: "https://onlineradiofm.in/stations/fm-gold" },
+};
+
+function getRadioLock(frequency) {
+  return radioLockedFrequencies[frequency] || null;
+}
+
 function getWalkieStats(frequency) {
   const members = walkieChannels.get(frequency) || new Set();
   let male = 0;
@@ -72,6 +84,8 @@ function getWalkieStats(frequency) {
     male,
     female,
     limit: 50,
+    locked: Boolean(getRadioLock(frequency)),
+    radio: getRadioLock(frequency),
   };
 }
 
@@ -462,7 +476,7 @@ app.get("/api/rooms", (request, response) => {
 
 app.get("/api/walkie/frequencies", (request, response) => {
   const active = Array.from(walkieChannels.keys()).sort((a, b) => Number(a) - Number(b));
-  const starter = ["30.10", "50.48", "70.70", "88.80", "99.99"];
+  const starter = ["30.10", "50.48", "70.70", "88.80", "92.70", "93.50", "98.30", "99.99"];
   const frequencies = Array.from(new Set([...active, ...starter]));
   response.json(
     frequencies.map((frequency) => getWalkieStats(frequency)),
@@ -838,6 +852,10 @@ io.on("connection", (socket) => {
   socket.on("walkie-voice", (payload = {}) => {
     const frequency = socket.data.walkieFrequency;
     if (!frequency) return;
+    if (getRadioLock(frequency)) {
+      socket.emit("walkie-error", { message: "Radio frequency is locked. Voice talk is disabled; chat only." });
+      return;
+    }
     socket.to(`walkie:${frequency}`).emit("walkie-voice", {
       from: socket.id,
       speaking: Boolean(payload.speaking),
@@ -847,6 +865,7 @@ io.on("connection", (socket) => {
   socket.on("walkie-audio", (payload = {}) => {
     const frequency = socket.data.walkieFrequency;
     if (!frequency || typeof payload.audio !== "string") return;
+    if (getRadioLock(frequency)) return;
     socket.to(`walkie:${frequency}`).emit("walkie-audio", {
       audio: payload.audio.slice(0, 750000),
       mimeType: security.sanitizeText(payload.mimeType || "audio/webm", 40),
@@ -856,6 +875,7 @@ io.on("connection", (socket) => {
   socket.on("walkie-live-audio", (payload = {}) => {
     const frequency = socket.data.walkieFrequency;
     if (!frequency || typeof payload.chunk !== "string") return;
+    if (getRadioLock(frequency)) return;
     socket.to(`walkie:${frequency}`).emit("walkie-live-audio", {
       chunk: payload.chunk.slice(0, 18000),
       sampleRate: 16000,
@@ -863,6 +883,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("walkie-webrtc-offer", (payload = {}) => {
+    if (getRadioLock(socket.data.walkieFrequency)) return;
     if (!payload.to || !payload.description) return;
     io.to(payload.to).emit("walkie-webrtc-offer", {
       from: socket.id,
@@ -871,6 +892,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("walkie-webrtc-answer", (payload = {}) => {
+    if (getRadioLock(socket.data.walkieFrequency)) return;
     if (!payload.to || !payload.description) return;
     io.to(payload.to).emit("walkie-webrtc-answer", {
       from: socket.id,
@@ -879,6 +901,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("walkie-webrtc-ice", (payload = {}) => {
+    if (getRadioLock(socket.data.walkieFrequency)) return;
     if (!payload.to || !payload.candidate) return;
     io.to(payload.to).emit("walkie-webrtc-ice", {
       from: socket.id,

@@ -6,6 +6,7 @@ const frequencyForm = document.querySelector("#frequencyForm");
 const frequencyInput = document.querySelector("#frequencyInput");
 const statusText = document.querySelector("#walkieStatus");
 const messages = document.querySelector("#walkieMessages");
+const radioLockPanel = document.querySelector("#radioLockPanel");
 const voiceStatus = document.querySelector("#voiceStatus");
 const form = document.querySelector("#walkieForm");
 const input = document.querySelector("#walkieInput");
@@ -13,6 +14,7 @@ const talkBtn = document.querySelector("#talkBtn");
 
 let activeFrequency = "";
 let localAudioStream = null;
+let activeRadioLock = null;
 let audioRecorder = null;
 let audioChunks = [];
 let voiceStatusTimer = null;
@@ -147,12 +149,37 @@ function renderFrequencies(rows) {
       (item) => `
         <button class="frequency-card ${item.frequency === activeFrequency ? "active" : ""}" data-frequency="${item.frequency}" type="button">
           <span>${item.frequency} FM</span>
-          <strong>${item.activeUsers}/${item.limit}</strong>
+          <strong>${item.locked ? item.radio?.name || "Radio locked" : `${item.activeUsers}/${item.limit}`}</strong>
           <small>M ${item.male || 0} · F ${item.female || 0}</small>
+          ${item.locked ? "<em>Radio · Chat only</em>" : ""}
         </button>
       `,
     )
     .join("");
+}
+
+function renderRadioLock(radio) {
+  activeRadioLock = radio || null;
+  if (!radioLockPanel) return;
+  if (!radio) {
+    radioLockPanel.innerHTML = "";
+    radioLockPanel.classList.remove("visible");
+    talkBtn.disabled = !activeFrequency;
+    return;
+  }
+
+  radioLockPanel.classList.add("visible");
+  radioLockPanel.innerHTML = `
+    <div>
+      <span>Radio frequency locked</span>
+      <strong>${window.BlackKnightSafety?.escapeText(radio.name) || radio.name}</strong>
+      <small>Voice disabled. Chat is open for this channel.</small>
+    </div>
+    <a href="${radio.pageUrl}" target="_blank" rel="noopener noreferrer">Open live radio</a>
+    <iframe title="${window.BlackKnightSafety?.escapeText(radio.name) || radio.name}" src="${radio.pageUrl}" loading="lazy"></iframe>
+  `;
+  talkBtn.disabled = true;
+  talkBtn.textContent = "Radio only";
 }
 
 function normalizeFrequency(value) {
@@ -336,6 +363,10 @@ frequencyForm.addEventListener(
 );
 
 async function startTalking() {
+  if (activeRadioLock) {
+    showVoiceStatus("Radio channel par voice disabled hai. Chat use karo.");
+    return;
+  }
   if (!activeFrequency || !(await ensureMic())) return;
   localAudioStream.getAudioTracks().forEach((track) => {
     track.enabled = true;
@@ -384,15 +415,17 @@ socket.on("walkie-joined", (payload) => {
   activeFrequency = payload.frequency;
   selfPeerId = payload.peerId || "";
   statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
-  talkBtn.disabled = false;
+  renderRadioLock(payload.locked ? payload.radio : null);
+  talkBtn.disabled = Boolean(payload.locked);
   messages.innerHTML = '<div class="empty-state">Channel joined. Typed messages will appear here.</div>';
-  showVoiceStatus(`Joined ${payload.frequency} FM`);
-  (payload.peers || []).forEach((peerId) => createWalkiePeer(peerId, true));
+  showVoiceStatus(payload.locked ? `${payload.radio?.name || "Radio"} locked channel joined` : `Joined ${payload.frequency} FM`);
+  if (!payload.locked) (payload.peers || []).forEach((peerId) => createWalkiePeer(peerId, true));
   loadFrequencies();
 });
 
 socket.on("walkie-peer-joined", (payload) => {
   if (!payload?.peerId) return;
+  if (activeRadioLock) return;
   createWalkiePeer(payload.peerId, false);
 });
 

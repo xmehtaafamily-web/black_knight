@@ -205,6 +205,10 @@ window.BlackKnightSafety?.showSafetyPopup?.();
         <span>Walkie Talkie</span>
         <strong>Frequency channels with voice + chat</strong>
       </a>
+      <a href="/radio.html" class="feature-card">
+        <span>Live Radio</span>
+        <strong>Play official internet radio streams</strong>
+      </a>
       <div class="feature-card">
         <span>Recent Connections</span>
         <strong>${recent.length ? recent.slice(0, 3).map((item) => item.code).join(" · ") : "Saved reconnect codes appear here"}</strong>

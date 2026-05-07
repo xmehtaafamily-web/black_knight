@@ -707,9 +707,11 @@ window.addSystemMessage = (text) => addMessage("System", text);
       if (document.fullscreenElement) {
         await document.exitFullscreen();
         videoArea.classList.remove("video-expanded");
+        document.body.classList.remove("video-fullscreen-active");
         return;
       }
       videoArea.classList.add("video-expanded");
+      document.body.classList.add("video-fullscreen-active");
       if (videoArea.requestFullscreen) {
         await videoArea.requestFullscreen();
         return;
@@ -718,10 +720,12 @@ window.addSystemMessage = (text) => addMessage("System", text);
       // CSS fallback below.
     }
     videoArea.classList.toggle("video-expanded");
+    document.body.classList.toggle("video-fullscreen-active", videoArea.classList.contains("video-expanded"));
   }
 
   document.addEventListener("fullscreenchange", () => {
     videoArea.classList.toggle("video-expanded", document.fullscreenElement === videoArea);
+    document.body.classList.toggle("video-fullscreen-active", document.fullscreenElement === videoArea);
   });
 
   videoArea.addEventListener("dblclick", toggleFullscreen);
@@ -774,6 +778,14 @@ window.addSystemMessage = (text) => addMessage("System", text);
       document.querySelector(".call-stage, .video-stage")?.before(card);
     } else {
       messages.before(card);
+    }
+  }
+
+  if (pageMode === "video") {
+    const card = document.querySelector(".icebreaker-card");
+    const videoArea = document.querySelector(".call-stage, .video-stage");
+    if (card && videoArea && card.nextElementSibling !== videoArea) {
+      videoArea.before(card);
     }
   }
 })();
