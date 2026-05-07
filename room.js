@@ -26,6 +26,11 @@ const typingIndicator = document.querySelector("#typingIndicator");
 const localVideo = document.querySelector("#localVideo");
 const remoteVideo = document.querySelector("#remoteVideo");
 
+if (chatForm && skipBtn && messageInput && skipBtn.parentElement !== chatForm) {
+  skipBtn.classList.add("next-inline-btn");
+  chatForm.insertBefore(skipBtn, messageInput);
+}
+
 const storageKeys = {
   pendingProfile: "bk_pending_profile",
   reconnectCode: "bk_reconnect_code",

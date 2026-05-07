@@ -200,4 +200,33 @@ window.BlackKnightSafety?.showSafetyPopup?.();
     form?.after(docks);
   }
 })();
+
+(function removeDuplicateMoodSections() {
+  cleanupDuplicateHomepageSections();
+})();
+
+function cleanupDuplicateHomepageSections() {
+  const keepFirst = (selector) => {
+    document.querySelectorAll(selector).forEach((node, index) => {
+      if (index > 0) node.remove();
+    });
+  };
+
+  keepFirst(".live-stats");
+  keepFirst(".feature-docks");
+
+  const moodSections = Array.from(document.querySelectorAll(".field-group")).filter((section) => {
+    const title = section.querySelector("span")?.textContent?.trim().toLowerCase();
+    return title === "choose mood" || section.querySelector('input[name="mood"]');
+  });
+  moodSections.slice(1).forEach((section) => section.remove());
+
+  const recentCards = Array.from(document.querySelectorAll(".feature-card")).filter((card) =>
+    card.textContent.toLowerCase().includes("recent connections"),
+  );
+  recentCards.slice(1).forEach((card) => card.remove());
+}
+
+window.addEventListener("DOMContentLoaded", cleanupDuplicateHomepageSections);
+window.setTimeout(cleanupDuplicateHomepageSections, 100);
 renderRecentConnections();

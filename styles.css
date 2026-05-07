@@ -427,6 +427,19 @@ input[type="text"]:focus {
   min-height: calc(100vh - 32px);
 }
 
+.chat-panel.video-mode {
+  gap: 12px;
+}
+
+.chat-panel.video-mode .messages {
+  min-height: 190px;
+  max-height: 30vh;
+}
+
+.chat-panel.video-mode .chat-form {
+  margin-top: 0;
+}
+
 .chat-panel.chat-mode .video-stage {
   display: none;
 }
@@ -1294,6 +1307,14 @@ input[type="password"]:focus {
   gap: 10px;
 }
 
+.chat-form .next-inline-btn {
+  min-width: 74px;
+  padding: 0 12px;
+  color: #07111f !important;
+  background: linear-gradient(135deg, #00f0ff, #8b5cf6) !important;
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.22) !important;
+}
+
 .chat-form button {
   min-width: 92px;
   padding: 13px 16px;
@@ -1320,7 +1341,7 @@ input[type="password"]:focus {
   }
 
   .chat-panel.video-mode {
-    grid-template-rows: auto minmax(520px, auto) auto minmax(260px, 1fr) auto;
+    grid-template-rows: auto minmax(360px, 44vh) auto minmax(190px, 1fr) auto;
   }
 }
 
@@ -1349,8 +1370,14 @@ input[type="password"]:focus {
   }
 
   .chat-form {
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: stretch;
-    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chat-form button[type="submit"] {
+    grid-column: 1 / -1;
   }
 
   .app-shell.in-room {
@@ -1361,6 +1388,8 @@ input[type="password"]:focus {
   .chat-panel.chat-mode,
   .chat-panel.video-mode {
     min-height: calc(100vh - 12px);
+    grid-template-rows: auto minmax(300px, 42vh) auto minmax(180px, 1fr) auto;
+    gap: 10px;
   }
 
   .chat-panel.chat-mode .messages {
@@ -1372,18 +1401,45 @@ input[type="password"]:focus {
   }
 
   .call-stage {
-    min-height: 58vh;
+    min-height: 42vh;
   }
 
   .call-stage .video-tile.remote {
-    min-height: 58vh;
+    min-height: 42vh;
   }
 
   .call-stage .self-preview {
-    width: 34%;
-    min-height: 128px;
+    width: 32%;
+    min-height: 108px;
     right: 10px;
     bottom: 10px;
+  }
+
+  .chat-panel.video-mode .call-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .chat-panel.video-mode .call-controls button {
+    min-height: 44px;
+    padding: 8px 6px;
+    font-size: 0.86rem;
+  }
+
+  .chat-panel.video-mode .messages {
+    min-height: 180px;
+    max-height: 25vh;
+    padding: 10px;
+  }
+
+  .chat-panel.video-mode .chat-form {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+
+  .chat-panel.video-mode .chat-form button[type="submit"] {
+    grid-column: 1 / -1;
   }
 }
 /* Guest safety and moderation UX */
@@ -1983,5 +2039,154 @@ td {
 
   .room-tools {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Compact video chat layout: keep video and chat visible together on mobile */
+.intro-panel,
+.setup-form,
+.chat-panel {
+  gap: 14px !important;
+}
+
+.intro-copy {
+  margin: 28px 0 20px !important;
+}
+
+.field-group,
+label {
+  color: rgba(248, 250, 252, 0.9) !important;
+}
+
+p,
+.muted,
+.helper,
+.intro-copy p,
+.feature-card strong,
+.room-code,
+.typing-indicator,
+.empty-state {
+  color: rgba(226, 232, 240, 0.82) !important;
+}
+
+.eyebrow,
+.field-group > span,
+label > span,
+.status-pill,
+.live-dot {
+  color: rgba(103, 232, 249, 0.94) !important;
+}
+
+.live-stats,
+.feature-docks {
+  margin-top: 12px !important;
+}
+
+.live-stats span,
+.feature-card,
+.mood-option span {
+  padding: 10px !important;
+}
+
+.chat-panel.video-mode {
+  gap: 10px !important;
+}
+
+.chat-panel.video-mode .messages {
+  min-height: 180px !important;
+  max-height: 30vh !important;
+}
+
+@media (max-width: 640px) {
+  .app-shell,
+  .start-shell,
+  .room-shell,
+  .admin-shell,
+  .page-shell {
+    padding: 8px !important;
+  }
+
+  .intro-panel,
+  .setup-form,
+  .chat-panel {
+    padding: 12px !important;
+  }
+
+  .topbar,
+  .match-header {
+    gap: 8px !important;
+  }
+
+  .intro-copy {
+    margin: 18px 0 14px !important;
+  }
+
+  .intro-copy h1,
+  h1 {
+    font-size: clamp(2rem, 10vw, 3.1rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .setup-form {
+    gap: 11px !important;
+  }
+
+  .segmented,
+  .mood-grid {
+    gap: 8px !important;
+  }
+
+  .live-stats span,
+  .feature-card,
+  .mood-option span,
+  input,
+  textarea,
+  select {
+    min-height: 42px !important;
+    padding: 9px 10px !important;
+  }
+
+  .primary-action,
+  button,
+  .btn,
+  .control-btn {
+    min-height: 44px !important;
+  }
+
+  .feature-docks {
+    gap: 8px !important;
+  }
+
+  .chat-panel.video-mode {
+    grid-template-rows: auto minmax(292px, 40vh) auto minmax(176px, 1fr) auto !important;
+  }
+
+  .chat-panel.video-mode .call-stage,
+  .chat-panel.video-mode .call-stage .video-tile.remote,
+  .chat-panel.video-mode .video-stage,
+  .chat-panel.video-mode .remote-video-wrap,
+  .chat-panel.video-mode .remote-video-card {
+    min-height: 292px !important;
+    max-height: 40vh !important;
+  }
+
+  .chat-panel.video-mode .call-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .chat-panel.video-mode .call-controls button {
+    min-height: 42px !important;
+    padding: 7px 5px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .chat-panel.video-mode .messages {
+    min-height: 176px !important;
+    max-height: 24vh !important;
+  }
+
+  .chat-panel.video-mode .chat-form {
+    gap: 8px !important;
   }
 }
