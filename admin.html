@@ -351,6 +351,11 @@
         return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
       }
 
+      function cleanUrl(value) {
+        const match = String(value || "").trim().match(/https?:\/\/[^\s"'<>]+/i);
+        return match ? match[0] : "";
+      }
+
       function setLoggedIn(loggedIn) {
         loginForm.style.display = loggedIn ? "none" : "grid";
         statsGrid.style.display = loggedIn ? "grid" : "none";
@@ -583,6 +588,8 @@
 
       radioForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        radioPageUrl.value = cleanUrl(radioPageUrl.value);
+        radioStreamUrl.value = cleanUrl(radioStreamUrl.value);
         const response = await fetch("/api/admin/radio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -604,12 +611,13 @@
       });
 
       extractRadioStreamBtn.addEventListener("click", async () => {
-        const pageUrl = radioPageUrl.value.trim();
+        const pageUrl = cleanUrl(radioPageUrl.value);
         if (!pageUrl) {
           window.alert("Pehle Page URL paste karo.");
           radioPageUrl.focus();
           return;
         }
+        radioPageUrl.value = pageUrl;
 
         extractRadioStreamBtn.disabled = true;
         extractRadioStreamBtn.textContent = "Finding...";
@@ -655,5 +663,97 @@
 
       checkLogin();
     </script>
-  </body>
+<script>
+  (function () {
+    const blockedRadioUrlParts = [
+      "schema.org",
+      "facebook.com",
+      "twitter.com",
+      "x.com",
+      "instagram.com",
+      "youtube.com",
+      "youtu.be",
+      "google.com",
+      "gstatic.com",
+      "w3.org",
+      "radiostation",
+      "application/ld+json"
+    ];
+
+    function cleanRadioUrl(value) {
+      const text = String(value || "").trim();
+      const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+      return match ? match[0] : "";
+    }
+
+    function isRealAudioStreamUrl(value) {
+      const url = cleanRadioUrl(value);
+      if (!url) return false;
+      const lower = url.toLowerCase();
+      if (blockedRadioUrlParts.some((part) => lower.includes(part))) return false;
+      if (/\.(mp3|aac|m3u8|ogg|opus|pls)(?:[?#]|$)/i.test(url)) return true;
+      return /(icecast|shoutcast|stream|livestream|listen|radiojar|radioca\.st|zeno\.fm|aacp)/i.test(url) &&
+        !/\.(html?|php|aspx?)(?:[?#]|$)/i.test(url);
+    }
+
+    function warnBadRadioUrl(url) {
+      alert(`${url} audio stream URL nahi hai. Yeh page metadata hai. Direct stream me .mp3, .aac, .m3u8, .ogg ya real Icecast/Shoutcast stream URL chahiye.`);
+    }
+
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async function patchedRadioFetch(input, init) {
+      const requestUrl = typeof input === "string" ? input : input?.url || "";
+      const method = String(init?.method || "GET").toUpperCase();
+
+      if (requestUrl.includes("/api/admin/radio") && !requestUrl.includes("extract-stream") && method === "POST" && init?.body) {
+        try {
+          const payload = JSON.parse(init.body);
+          if (payload.streamUrl && !isRealAudioStreamUrl(payload.streamUrl)) {
+            warnBadRadioUrl(payload.streamUrl);
+            return new Response(JSON.stringify({ error: "Direct stream URL must be a real audio stream." }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        } catch (error) {
+          // Existing handler will show the normal error.
+        }
+      }
+
+      const response = await nativeFetch(input, init);
+
+      if (requestUrl.includes("/api/admin/radio/extract-stream") && response.ok) {
+        try {
+          const clone = response.clone();
+          const data = await clone.json();
+          if (data?.streamUrl && !isRealAudioStreamUrl(data.streamUrl)) {
+            return new Response(JSON.stringify({ streamUrl: "", error: "No real audio stream found." }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        } catch (error) {
+          return response;
+        }
+      }
+
+      return response;
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const streamInput = document.getElementById("radioStreamUrl");
+      if (!streamInput) return;
+      streamInput.addEventListener("blur", () => {
+        const value = streamInput.value.trim();
+        if (!value) return;
+        if (!isRealAudioStreamUrl(value)) {
+          warnBadRadioUrl(value);
+          streamInput.value = "";
+          streamInput.focus();
+        }
+      });
+    });
+  })();
+</script>
+</body>
 </html>

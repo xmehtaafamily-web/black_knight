@@ -59,6 +59,12 @@ function normalizeWalkieFrequency(value) {
   return number.toFixed(2);
 }
 
+function normalizeUrlInput(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0] : "";
+}
+
 const radioLockedFrequencies = new Map();
 
 async function refreshRadioStations() {
@@ -486,8 +492,8 @@ app.get("/api/admin/radio", requireAdmin, async (request, response) => {
 app.post("/api/admin/radio", requireAdmin, async (request, response) => {
   const frequency = normalizeWalkieFrequency(request.body?.frequency);
   const name = security.sanitizeText(request.body?.name || "", 60);
-  const pageUrl = security.sanitizeText(request.body?.pageUrl || "", 300);
-  const streamUrl = security.sanitizeText(request.body?.streamUrl || "", 500);
+  const pageUrl = normalizeUrlInput(request.body?.pageUrl);
+  const streamUrl = normalizeUrlInput(request.body?.streamUrl);
   const locked = request.body?.locked !== false;
 
   if (!frequency || !name) {
@@ -501,7 +507,7 @@ app.post("/api/admin/radio", requireAdmin, async (request, response) => {
 });
 
 app.post("/api/admin/radio/extract-stream", requireAdmin, async (request, response) => {
-  const pageUrl = security.sanitizeText(request.body?.pageUrl || "", 500);
+  const pageUrl = normalizeUrlInput(request.body?.pageUrl);
   if (!/^https?:\/\//i.test(pageUrl)) {
     response.status(400).json({ error: "Valid page URL is required." });
     return;
@@ -530,7 +536,7 @@ app.post("/api/admin/radio/extract-stream", requireAdmin, async (request, respon
     const patterns = [
       /<(?:audio|source)[^>]+src=["']([^"']+)["']/gi,
       /["'](https?:\/\/[^"']+\.(?:mp3|aac|m3u8|ogg|pls)(?:\?[^"']*)?)["']/gi,
-      /(https?:\/\/[^\s"'<>\\]+(?:stream|live|radio)[^\s"'<>\\]+)/gi,
+      /(https?:\/\/(?![^\s"'<>\\]*(?:schema\.org|facebook\.com|twitter\.com|instagram\.com|youtube\.com|google\.com|gstatic\.com|w3\.org|radiostation))[^\s"'<>\\]+(?:stream|live|listen|icecast|shoutcast|radiojar|radioca\.st|zeno\.fm|aacp)[^\s"'<>\\]+)/gi,
     ];
 
     for (const pattern of patterns) {
