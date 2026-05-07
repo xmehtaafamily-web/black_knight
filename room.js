@@ -31,6 +31,10 @@ if (chatForm && skipBtn && messageInput && skipBtn.parentElement !== chatForm) {
   chatForm.insertBefore(skipBtn, messageInput);
 }
 
+if (pageMode === "video" && endCallBtn) {
+  endCallBtn.remove();
+}
+
 const storageKeys = {
   pendingProfile: "bk_pending_profile",
   reconnectCode: "bk_reconnect_code",
@@ -580,6 +584,46 @@ window.addSystemMessage = (text) => addMessage("System", text);
   });
 
   controls.append(leave, blur);
+  if (pageMode === "video") {
+    [cameraBtn, micBtn, leave, blur].forEach((button) => {
+      if (button && button.parentElement !== controls) controls.append(button);
+    });
+  }
+})();
+
+(function addFloatingChatActions() {
+  if (document.querySelector("#floatingChatActions")) return;
+
+  const dock = document.createElement("div");
+  dock.id = "floatingChatActions";
+  dock.className = "floating-chat-actions";
+  dock.innerHTML = `
+    <button id="floatingActionsToggle" class="floating-actions-toggle" type="button" aria-label="More actions" aria-expanded="false">⋯</button>
+    <div class="floating-actions-menu" role="menu"></div>
+  `;
+
+  const menu = dock.querySelector(".floating-actions-menu");
+  [blockBtn, reportBtn].forEach((button) => {
+    if (!button) return;
+    button.classList.add("floating-menu-btn");
+    menu.append(button);
+  });
+
+  const anchor = chatForm || messages || document.querySelector(".chat-panel");
+  anchor?.parentElement?.insertBefore(dock, anchor);
+
+  const toggle = dock.querySelector("#floatingActionsToggle");
+  toggle.addEventListener("click", () => {
+    dock.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(dock.classList.contains("open")));
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!dock.contains(event.target)) {
+      dock.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
 })();
 
 (function enhanceRoomExperience() {
@@ -613,6 +657,10 @@ window.addSystemMessage = (text) => addMessage("System", text);
     const card = document.createElement("div");
     card.className = "icebreaker-card";
     card.textContent = "Ask them: What changed your life forever?";
-    messages.before(card);
+    if (pageMode === "video") {
+      document.querySelector(".call-stage, .video-stage")?.before(card);
+    } else {
+      messages.before(card);
+    }
   }
 })();
