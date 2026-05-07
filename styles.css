@@ -2108,6 +2108,70 @@ td {
   overflow: hidden !important;
 }
 
+body.video-fullscreen-active {
+  overflow: hidden !important;
+}
+
+body.video-fullscreen-active .call-stage,
+body.video-fullscreen-active .video-stage,
+body.video-fullscreen-active .video-expanded {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9998 !important;
+  display: block !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #020617 !important;
+  overflow: hidden !important;
+}
+
+body.video-fullscreen-active .call-stage .video-tile.remote,
+body.video-fullscreen-active .video-stage .video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  min-height: 100dvh !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+body.video-fullscreen-active .call-stage .video-tile.remote video,
+body.video-fullscreen-active .video-stage .video-tile.remote video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  object-fit: cover !important;
+  opacity: 1 !important;
+}
+
+body.video-fullscreen-active .call-stage .video-tile.remote strong,
+body.video-fullscreen-active .video-stage .video-tile.remote strong {
+  z-index: 6 !important;
+}
+
+body.video-fullscreen-active .call-stage .self-preview,
+body.video-fullscreen-active .video-stage .self-preview {
+  position: absolute !important;
+  z-index: 8 !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  width: min(34vw, 178px) !important;
+  height: min(26vh, 210px) !important;
+  min-height: 118px !important;
+  max-height: 230px !important;
+  border-radius: 18px !important;
+}
+
 .call-stage:fullscreen .video-tile.remote,
 .video-stage:fullscreen .video-tile.remote,
 .video-expanded .video-tile.remote {
