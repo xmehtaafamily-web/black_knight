@@ -38,6 +38,7 @@ const reconnectWaiting = new Map();
 const roomCounts = new Map();
 const roomMessages = new Map();
 const confessions = [];
+const walkieChannels = new Map();
 
 const publicRooms = [
   { id: "3am-thoughts", name: "3AM Thoughts", voiceReady: false },
@@ -46,6 +47,14 @@ const publicRooms = [
   { id: "anonymous-confessions", name: "Anonymous Confessions", voiceReady: false },
   { id: "chill-zone", name: "Chill Zone", voiceReady: false },
 ];
+
+function normalizeWalkieFrequency(value) {
+  const raw = String(value || "").trim();
+  if (!/^\d{2,3}(?:\.\d{1,2})?$/.test(raw)) return "";
+  const number = Number(raw);
+  if (!Number.isFinite(number) || number < 30 || number > 100) return "";
+  return number.toFixed(2);
+}
 
 app.set("trust proxy", true);
 
@@ -432,6 +441,19 @@ app.get("/api/rooms", (request, response) => {
   );
 });
 
+app.get("/api/walkie/frequencies", (request, response) => {
+  const active = Array.from(walkieChannels.keys()).sort((a, b) => Number(a) - Number(b));
+  const starter = ["30.10", "50.48", "70.70", "88.80", "99.99"];
+  const frequencies = Array.from(new Set([...active, ...starter]));
+  response.json(
+    frequencies.map((frequency) => ({
+      frequency,
+      activeUsers: walkieChannels.get(frequency)?.size || 0,
+      limit: 50,
+    })),
+  );
+});
+
 app.get("/api/confessions", (request, response) => {
   const page = Math.max(0, Number(request.query.page || 0));
   const approved = confessions.filter((item) => item.status === "approved");
@@ -733,6 +755,65 @@ io.on("connection", (socket) => {
     io.to(`public:${roomId}`).emit("public-room-message", message);
   });
 
+  socket.on("join-walkie", (payload = {}) => {
+    const frequency = normalizeWalkieFrequency(payload.frequency || "30.10");
+    if (!frequency) {
+      socket.emit("walkie-error", { message: "Frequency must be between 30.00 and 100.00." });
+      return;
+    }
+
+    const usersOnFrequency = walkieChannels.get(frequency) || new Set();
+    if (!usersOnFrequency.has(socket.id) && usersOnFrequency.size >= 50) {
+      socket.emit("walkie-error", { message: "This frequency is full. Maximum 50 users allowed." });
+      return;
+    }
+
+    for (const [channel, members] of walkieChannels.entries()) {
+      if (members.delete(socket.id)) {
+        socket.leave(`walkie:${channel}`);
+        io.to(`walkie:${channel}`).emit("walkie-presence", {
+          frequency: channel,
+          activeUsers: members.size,
+          limit: 50,
+        });
+      }
+    }
+
+    usersOnFrequency.add(socket.id);
+    walkieChannels.set(frequency, usersOnFrequency);
+    socket.join(`walkie:${frequency}`);
+    socket.data.walkieFrequency = frequency;
+    socket.emit("walkie-joined", { frequency, activeUsers: usersOnFrequency.size, limit: 50 });
+    io.to(`walkie:${frequency}`).emit("walkie-presence", {
+      frequency,
+      activeUsers: usersOnFrequency.size,
+      limit: 50,
+    });
+  });
+
+  socket.on("walkie-message", (payload = {}) => {
+    const frequency = socket.data.walkieFrequency;
+    if (!frequency) return;
+    const text = security.sanitizeText(payload.text || "", 160);
+    if (!text) return;
+    io.to(`walkie:${frequency}`).emit("walkie-message", {
+      id: crypto.randomUUID(),
+      frequency,
+      text,
+      guest: "Anonymous",
+      createdAt: new Date().toISOString(),
+    });
+  });
+
+  socket.on("walkie-voice", (payload = {}) => {
+    const frequency = socket.data.walkieFrequency;
+    if (!frequency) return;
+    socket.to(`walkie:${frequency}`).emit("walkie-voice", {
+      from: socket.id,
+      speaking: Boolean(payload.speaking),
+    });
+  });
+
   socket.on("disconnect", () => {
     waiting.delete(socket.id);
     for (const [code, socketId] of reconnectWaiting.entries()) {
@@ -740,6 +821,15 @@ io.on("connection", (socket) => {
     }
     const user = users.get(socket.id);
     if (user?.roomId) endMatch(user.roomId, "Match disconnected.");
+    for (const [frequency, members] of walkieChannels.entries()) {
+      if (members.delete(socket.id)) {
+        io.to(`walkie:${frequency}`).emit("walkie-presence", {
+          frequency,
+          activeUsers: members.size,
+          limit: 50,
+        });
+      }
+    }
     users.delete(socket.id);
   });
 });

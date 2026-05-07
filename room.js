@@ -52,6 +52,9 @@ let remoteTypingTimer = null;
 let nextClickCount = 0;
 let localMediaReady = false;
 let pendingIceCandidates = [];
+let outgoingBlurEnabled = false;
+let blurCanvasStream = null;
+let blurAnimationFrame = null;
 let translateEnabled = false;
 
 const translationDictionary = {
@@ -176,6 +179,56 @@ async function getLocalStream() {
   return localStream;
 }
 
+function stopBlurTrack() {
+  if (blurAnimationFrame) window.cancelAnimationFrame(blurAnimationFrame);
+  blurAnimationFrame = null;
+  blurCanvasStream?.getTracks().forEach((track) => track.stop());
+  blurCanvasStream = null;
+}
+
+function createBlurredVideoTrack() {
+  if (!localStream) return null;
+  if (blurCanvasStream) return blurCanvasStream.getVideoTracks()[0] || null;
+
+  const sourceVideo = document.createElement("video");
+  sourceVideo.muted = true;
+  sourceVideo.playsInline = true;
+  sourceVideo.srcObject = localStream;
+  sourceVideo.play().catch(() => {});
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 640;
+  canvas.height = 360;
+  const context = canvas.getContext("2d");
+
+  const draw = () => {
+    if (!localStream || !context) return;
+    context.save();
+    context.filter = "blur(18px)";
+    context.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+    context.restore();
+    blurAnimationFrame = window.requestAnimationFrame(draw);
+  };
+  draw();
+
+  blurCanvasStream = canvas.captureStream(24);
+  const blurredTrack = blurCanvasStream.getVideoTracks()[0];
+  if (blurredTrack) blurredTrack.enabled = localStream.getVideoTracks()[0]?.enabled !== false;
+  return blurredTrack || null;
+}
+
+async function setOutgoingBlur(enabled) {
+  outgoingBlurEnabled = enabled;
+  if (!localStream) await getLocalStream();
+
+  const originalTrack = localStream.getVideoTracks()[0];
+  const nextTrack = enabled ? createBlurredVideoTrack() : originalTrack;
+  if (!nextTrack) return;
+
+  const sender = peerConnection?.getSenders().find((item) => item.track?.kind === "video");
+  if (sender) await sender.replaceTrack(nextTrack);
+}
+
 async function prepareLocalMedia() {
   if (pageMode !== "video" || localMediaReady) return;
 
@@ -204,7 +257,14 @@ async function createPeerConnection(options = { requireLocal: true }) {
 
   if (options.requireLocal) {
     const stream = await getLocalStream();
-    stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+    stream.getTracks().forEach((track) => {
+      if (track.kind === "video" && outgoingBlurEnabled) {
+        const blurredTrack = createBlurredVideoTrack();
+        peerConnection.addTrack(blurredTrack || track, stream);
+        return;
+      }
+      peerConnection.addTrack(track, stream);
+    });
   } else {
     peerConnection.addTransceiver("video", { direction: "recvonly" });
     peerConnection.addTransceiver("audio", { direction: "recvonly" });
@@ -242,6 +302,8 @@ function stopVideoCall(notifyMatch = true) {
   pendingIceCandidates = [];
   localStream?.getTracks().forEach((track) => track.stop());
   localStream = null;
+  stopBlurTrack();
+  outgoingBlurEnabled = false;
   if (localVideo) localVideo.srcObject = null;
   if (remoteVideo) remoteVideo.srcObject = null;
   setVideoTileState();
@@ -318,6 +380,8 @@ cameraBtn?.addEventListener("click", () => {
   if (!videoTrack) return;
 
   videoTrack.enabled = !videoTrack.enabled;
+  const blurredTrack = blurCanvasStream?.getVideoTracks()[0];
+  if (blurredTrack) blurredTrack.enabled = videoTrack.enabled;
   cameraBtn.classList.toggle("active", videoTrack.enabled);
   cameraBtn.textContent = videoTrack.enabled ? "Camera off" : "Camera on";
 });
@@ -578,9 +642,14 @@ window.addSystemMessage = (text) => addMessage("System", text);
   blur.id = "blurVideoBtn";
   blur.type = "button";
   blur.textContent = "Blur video";
-  blur.addEventListener("click", () => {
-    document.body.classList.toggle("privacy-blur");
-    blur.textContent = document.body.classList.contains("privacy-blur") ? "Unblur video" : "Blur video";
+  blur.addEventListener("click", async () => {
+    try {
+      await setOutgoingBlur(!outgoingBlurEnabled);
+      blur.textContent = outgoingBlurEnabled ? "Unblur me" : "Blur video";
+      addMessage("System", outgoingBlurEnabled ? "Your outgoing video is blurred for the match." : "Your outgoing video is clear again.");
+    } catch (error) {
+      addMessage("System", "Blur could not be applied on this browser.");
+    }
   });
 
   controls.append(leave, blur);
@@ -624,6 +693,45 @@ window.addSystemMessage = (text) => addMessage("System", text);
       toggle.setAttribute("aria-expanded", "false");
     }
   });
+})();
+
+(function enableVideoDoubleTapFullscreen() {
+  if (pageMode !== "video") return;
+  const videoArea = document.querySelector(".call-stage, .video-stage");
+  if (!videoArea) return;
+
+  let lastTap = 0;
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        videoArea.classList.remove("video-expanded");
+        return;
+      }
+      if (videoArea.requestFullscreen) {
+        await videoArea.requestFullscreen();
+        return;
+      }
+    } catch (error) {
+      // CSS fallback below.
+    }
+    videoArea.classList.toggle("video-expanded");
+  }
+
+  videoArea.addEventListener("dblclick", toggleFullscreen);
+  videoArea.addEventListener(
+    "touchend",
+    (event) => {
+      const currentTap = Date.now();
+      if (currentTap - lastTap < 320) {
+        event.preventDefault();
+        toggleFullscreen();
+      }
+      lastTap = currentTap;
+    },
+    { passive: false },
+  );
 })();
 
 (function enhanceRoomExperience() {

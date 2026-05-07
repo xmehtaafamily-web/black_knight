@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Walkie Talkie</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=walkie-1" />
+  </head>
+  <body>
+    <main class="app-shell start-shell walkie-shell">
+      <section class="panel intro-panel walkie-panel">
+        <nav class="topbar">
+          <a class="secondary-link" href="/">Back</a>
+          <div class="brand">
+            <span class="brand-mark">BK</span>
+            <span>Walkie Talkie</span>
+          </div>
+          <span id="walkieStatus" class="status-pill">Choose frequency</span>
+        </nav>
+
+        <div class="intro-copy">
+          <p class="eyebrow">Frequency voice + chat</p>
+          <h1>Hold To Talk</h1>
+          <p>Join one frequency channel. Maximum 50 anonymous users per frequency.</p>
+        </div>
+
+        <form id="frequencyForm" class="frequency-form">
+          <label>
+            Set frequency
+            <input id="frequencyInput" type="number" min="30" max="100" step="0.01" value="50.48" placeholder="30.00 - 100.00" />
+          </label>
+          <button type="submit">Join frequency</button>
+        </form>
+
+        <div id="frequencyGrid" class="frequency-grid" aria-label="Active frequencies"></div>
+
+        <div class="walkie-console">
+          <div id="walkieMessages" class="messages">
+            <div class="empty-state">Select a frequency to enter the channel.</div>
+          </div>
+
+          <button id="talkBtn" class="talk-btn" type="button" disabled>Hold to talk</button>
+
+          <form id="walkieForm" class="chat-form">
+            <input id="walkieInput" type="text" maxlength="160" placeholder="Type channel message..." />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./walkie.js?v=1"></script>
+  </body>
+</html>

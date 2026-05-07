@@ -137,7 +137,7 @@ window.BlackKnightSafety?.ensureGuestSession?.();
 window.BlackKnightSafety?.showSafetyPopup?.();
 
 (function enhanceHomeExperience() {
-  const moodOptions = ["Chill", "Deep Talk", "Gamer", "Flirty", "Emotional", "Night Owl"];
+  const moodOptions = ["Chill", "Deep Talk", "Night Owl"];
   const introCopy = document.querySelector(".intro-copy");
   if (introCopy) {
     introCopy.innerHTML = `
@@ -191,6 +191,10 @@ window.BlackKnightSafety?.showSafetyPopup?.();
       <a href="/confessions.html" class="feature-card">
         <span>Confession Wall</span>
         <strong>Anonymous confessions with reactions</strong>
+      </a>
+      <a href="/walkie.html" class="feature-card">
+        <span>Walkie Talkie</span>
+        <strong>Frequency channels with voice + chat</strong>
       </a>
       <div class="feature-card">
         <span>Recent Connections</span>
