@@ -308,6 +308,7 @@
           <label>Page URL<input id="radioPageUrl" type="url" placeholder="https://..." /></label>
           <label>Direct stream URL<input id="radioStreamUrl" type="url" placeholder="https://.../live.mp3" /></label>
           <label class="check-row"><input id="radioLocked" type="checkbox" checked /> Lock voice on this frequency</label>
+          <button id="extractRadioStreamBtn" class="admin-btn secondary" type="button">Auto find stream</button>
           <button class="admin-btn" type="submit">Save radio frequency</button>
         </form>
         <div id="radioList" class="admin-list"></div>
@@ -332,6 +333,7 @@
       const radioPageUrl = document.querySelector("#radioPageUrl");
       const radioStreamUrl = document.querySelector("#radioStreamUrl");
       const radioLocked = document.querySelector("#radioLocked");
+      const extractRadioStreamBtn = document.querySelector("#extractRadioStreamBtn");
 
       let currentReports = [];
       let reportFilter = "all";
@@ -599,6 +601,35 @@
         radioForm.reset();
         radioLocked.checked = true;
         loadDashboard();
+      });
+
+      extractRadioStreamBtn.addEventListener("click", async () => {
+        const pageUrl = radioPageUrl.value.trim();
+        if (!pageUrl) {
+          window.alert("Pehle Page URL paste karo.");
+          radioPageUrl.focus();
+          return;
+        }
+
+        extractRadioStreamBtn.disabled = true;
+        extractRadioStreamBtn.textContent = "Finding...";
+        try {
+          const response = await fetch("/api/admin/radio/extract-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageUrl }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.streamUrl) {
+            window.alert(data.error || "Direct stream URL page me openly nahi mila.");
+            return;
+          }
+          radioStreamUrl.value = data.streamUrl;
+          window.alert(`Stream found: ${data.streamUrl}`);
+        } finally {
+          extractRadioStreamBtn.disabled = false;
+          extractRadioStreamBtn.textContent = "Auto find stream";
+        }
       });
 
       radioList.addEventListener("click", async (event) => {

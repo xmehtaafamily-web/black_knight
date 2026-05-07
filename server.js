@@ -500,6 +500,61 @@ app.post("/api/admin/radio", requireAdmin, async (request, response) => {
   response.json(station);
 });
 
+app.post("/api/admin/radio/extract-stream", requireAdmin, async (request, response) => {
+  const pageUrl = security.sanitizeText(request.body?.pageUrl || "", 500);
+  if (!/^https?:\/\//i.test(pageUrl)) {
+    response.status(400).json({ error: "Valid page URL is required." });
+    return;
+  }
+
+  try {
+    const pageResponse = await fetch(pageUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 BlackKnightRadioBot/1.0",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+
+    if (!pageResponse.ok) {
+      response.status(400).json({ error: "Could not open station page." });
+      return;
+    }
+
+    const html = await pageResponse.text();
+    const candidates = new Set();
+    const decodedHtml = html
+      .replace(/\\\//g, "/")
+      .replace(/&amp;/g, "&")
+      .replace(/&#x2F;/g, "/");
+
+    const patterns = [
+      /<(?:audio|source)[^>]+src=["']([^"']+)["']/gi,
+      /["'](https?:\/\/[^"']+\.(?:mp3|aac|m3u8|ogg|pls)(?:\?[^"']*)?)["']/gi,
+      /(https?:\/\/[^\s"'<>\\]+(?:stream|live|radio)[^\s"'<>\\]+)/gi,
+    ];
+
+    for (const pattern of patterns) {
+      let match;
+      while ((match = pattern.exec(decodedHtml))) {
+        const raw = match[1] || match[0];
+        try {
+          const absolute = new URL(raw, pageUrl).toString();
+          if (/\.(mp3|aac|m3u8|ogg|pls)(?:\?|$)/i.test(absolute) || /(stream|live|radio)/i.test(absolute)) {
+            candidates.add(absolute);
+          }
+        } catch (error) {
+          // Ignore invalid URLs.
+        }
+      }
+    }
+
+    const streams = Array.from(candidates).slice(0, 10);
+    response.json({ streamUrl: streams[0] || "", streams });
+  } catch (error) {
+    response.status(500).json({ error: "Stream extraction failed." });
+  }
+});
+
 app.get("/api/walkie/frequencies", (request, response) => {
   const active = Array.from(walkieChannels.keys()).sort((a, b) => Number(a) - Number(b));
   const starter = ["30.10", "50.48", "70.70", "88.80", "92.70", "93.50", "98.30", "99.99"];
