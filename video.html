@@ -12,7 +12,7 @@
     />
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6577633980455130"
       crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
   </head>
   <body>
     <main class="app-shell in-room">
@@ -23,6 +23,7 @@
             <h2 id="matchName">Waiting room</h2>
             <p id="reconnectCode" class="room-code"></p>
             <button id="copyCodeBtn" class="copy-code-btn" type="button">Copy reconnect code</button>
+            <div id="profileChips" class="profile-chips"></div>
           </div>
           <div class="match-meta">
             <span id="modeStatus" class="live-dot">Video Chat mode</span>
@@ -48,6 +49,7 @@
           <button id="cameraBtn" type="button">Camera off</button>
           <button id="micBtn" type="button">Mic off</button>
           <button id="endCallBtn" type="button">End call</button>
+          <button id="translateBtn" type="button">Translate</button>
           <button id="skipBtn" type="button">Next</button>
           <button id="blockBtn" type="button">Block</button>
           <button id="reportBtn" type="button">Report</button>
@@ -55,8 +57,13 @@
 
         <div id="nextAdSlot" class="ad-slot next-ad-slot" data-ad-slot="video"></div>
 
+        <div class="icebreaker-card">
+          <span>AI icebreaker</span>
+          <strong>Ask them: What changed your life forever?</strong>
+        </div>
+
         <div id="messages" class="messages" aria-live="polite">
-          <div class="empty-state">Looking for a video chat match...</div>
+          <div class="empty-state"><span class="radar-loader"></span><strong>Waiting for a matching user...</strong></div>
         </div>
         <div id="typingIndicator" class="typing-indicator" aria-live="polite"></div>
 
@@ -77,6 +84,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="./ads.js"></script>
     <script src="./protection.js"></script>
-    <script src="./room.js?v=video-hd-1" data-room-mode="video"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./room.js?v=feature-pack-1" data-room-mode="video"></script>
+    <script src="./safety-client.js"></script>
   </body>
 </html>

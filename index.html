@@ -13,7 +13,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6577633980455130"
       crossorigin="anonymous"></script>
     <meta name="verify-admitad" content="1895f3294b" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
   </head>
   <body>
     <main class="app-shell start-shell">
@@ -23,15 +23,25 @@
             <span class="brand-mark">BK</span>
             <span>Black_knight</span>
           </div>
-          <span class="status-pill">18+ safe matching</span>
+          <div class="top-links">
+            <a href="./rooms.html">Rooms</a>
+            <a href="./confessions.html">Confessions</a>
+            <span class="status-pill">18+ safe matching</span>
+          </div>
         </nav>
 
         <div class="ad-slot ad-slot-top" data-ad-slot="start"></div>
 
         <div class="intro-copy">
           <p class="eyebrow">Random chat and video matching</p>
-          <h1>Choose how you want to meet.</h1>
-          <p>Chat and Video Chat open as separate rooms after you start matching.</p>
+          <h1>Enter The Unknown</h1>
+          <p>Meet strangers instantly through text or live video.</p>
+        </div>
+
+        <div class="live-stats" aria-label="Live platform stats">
+          <article><strong>12,421</strong><span>Online</span></article>
+          <article><strong>1,281</strong><span>Video Chats Live</span></article>
+          <article><strong>85</strong><span>Countries Active</span></article>
         </div>
 
         <form id="profileForm" class="setup-form">
@@ -74,6 +84,18 @@
             </div>
           </div>
 
+          <div class="field-group">
+            <span>Choose mood</span>
+            <div class="mood-grid" role="radiogroup" aria-label="Mood">
+              <label><input type="radio" name="mood" value="Chill" checked /> Chill</label>
+              <label><input type="radio" name="mood" value="Deep Talk" /> Deep Talk</label>
+              <label><input type="radio" name="mood" value="Gamer" /> Gamer</label>
+              <label><input type="radio" name="mood" value="Flirty" /> Flirty</label>
+              <label><input type="radio" name="mood" value="Emotional" /> Emotional</label>
+              <label><input type="radio" name="mood" value="Night Owl" /> Night Owl</label>
+            </div>
+          </div>
+
           <label class="check-row">
             <input id="ageCheck" type="checkbox" />
             <span>I confirm I am 18 or older.</span>
@@ -82,6 +104,8 @@
           <button class="primary-action" type="submit">Start random chat</button>
           <a class="secondary-link" href="./reconnect.html">Reconnect with a saved code</a>
         </form>
+
+        <section id="recentConnections" class="recent-connections"></section>
 
         <footer class="legal-links">
           <a href="./about.html">About</a>
@@ -94,6 +118,7 @@
     </main>
 
     <script src="./ads.js"></script>
-    <script src="./home.js?v=video-stable-1"></script>
+    <script src="./home.js?v=feature-pack-1"></script>
+    <script src="./safety-client.js"></script>
   </body>
 </html>

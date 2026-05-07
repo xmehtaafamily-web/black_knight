@@ -43,6 +43,12 @@ async function initDb() {
     )
   `);
 
+  await pool.query("ALTER TABLE reports ADD COLUMN IF NOT EXISTS reporter_guest_session_id TEXT");
+  await pool.query("ALTER TABLE reports ADD COLUMN IF NOT EXISTS target_guest_session_id TEXT");
+  await pool.query("ALTER TABLE reports ADD COLUMN IF NOT EXISTS category TEXT");
+  await pool.query("ALTER TABLE reports ADD COLUMN IF NOT EXISTS risk_score INTEGER DEFAULT 0");
+  await pool.query("ALTER TABLE reports ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb");
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bans (
       id TEXT PRIMARY KEY,
@@ -73,13 +79,18 @@ function reportFromRow(row) {
     reporterGender: row.reporter_gender,
     reporterContact: row.reporter_contact,
     reporterContactMasked: row.reporter_contact_masked,
+    reporterGuestSessionId: row.reporter_guest_session_id,
     matchId: row.match_id,
     matchName: row.match_name,
     matchContact: row.match_contact,
     matchContactMasked: row.match_contact_masked,
+    targetGuestSessionId: row.target_guest_session_id,
     mode: row.mode,
     roomId: row.room_id,
+    category: row.category,
     reason: row.reason,
+    riskScore: row.risk_score || 0,
+    metadata: row.metadata || {},
     status: row.status,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
@@ -88,7 +99,6 @@ function reportFromRow(row) {
 
 async function listReports() {
   if (!pool) return readJson(REPORTS_FILE);
-
   const result = await pool.query("SELECT * FROM reports ORDER BY created_at DESC LIMIT 500");
   return result.rows.map(reportFromRow);
 }
@@ -106,27 +116,32 @@ async function saveReport(report) {
       INSERT INTO reports (
         id, reporter_id, reporter_name, reporter_gender, reporter_contact, reporter_contact_masked,
         match_id, match_name, match_contact, match_contact_masked, mode, room_id, reason, status,
-        created_at, reviewed_at
+        created_at, reviewed_at, reporter_guest_session_id, target_guest_session_id, category, risk_score, metadata
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
     `,
     [
       report.id,
-      report.reporterId,
-      report.reporterName,
-      report.reporterGender,
-      report.reporterContact,
-      report.reporterContactMasked,
-      report.matchId,
-      report.matchName,
-      report.matchContact,
-      report.matchContactMasked,
-      report.mode,
-      report.roomId,
-      report.reason,
-      report.status,
-      report.createdAt,
+      report.reporterId || "",
+      report.reporterName || "Anonymous guest",
+      report.reporterGender || "private",
+      report.reporterContact || "",
+      report.reporterContactMasked || "",
+      report.matchId || "",
+      report.matchName || "Anonymous guest",
+      report.matchContact || "",
+      report.matchContactMasked || "",
+      report.mode || "text",
+      report.roomId || "",
+      report.reason || "No reason",
+      report.status || "open",
+      report.createdAt || new Date().toISOString(),
       report.reviewedAt || null,
+      report.reporterGuestSessionId || "",
+      report.targetGuestSessionId || "",
+      report.category || "",
+      report.riskScore || 0,
+      report.metadata || {},
     ],
   );
 }
@@ -136,8 +151,8 @@ async function updateReportStatus(id, status) {
   const report = reports.find((item) => item.id === id);
   if (!report) return null;
 
-  report.status = status === "reviewed" ? "reviewed" : "open";
-  report.reviewedAt = report.status === "reviewed" ? new Date().toISOString() : null;
+  report.status = status === "reviewed" || status === "hidden" ? status : "open";
+  report.reviewedAt = report.status === "open" ? null : new Date().toISOString();
 
   if (!pool) {
     writeJson(REPORTS_FILE, reports);
@@ -149,13 +164,11 @@ async function updateReportStatus(id, status) {
     report.reviewedAt,
     id,
   ]);
-
   return report;
 }
 
 async function listBans() {
   if (!pool) return readJson(BANS_FILE);
-
   const result = await pool.query("SELECT * FROM bans ORDER BY created_at DESC");
   return result.rows.map((row) => ({
     id: row.id,
@@ -173,7 +186,6 @@ async function saveBan(ban) {
     writeJson(BANS_FILE, [ban, ...bans]);
     return;
   }
-
   await pool.query(
     "INSERT INTO bans (id, name, contact, contact_masked, reason, created_at) VALUES ($1, $2, $3, $4, $5, $6)",
     [ban.id, ban.name, ban.contact, ban.contactMasked, ban.reason, ban.createdAt],
@@ -189,7 +201,6 @@ async function deleteBan(id) {
     );
     return;
   }
-
   await pool.query("DELETE FROM bans WHERE id = $1", [id]);
 }
 
@@ -203,7 +214,6 @@ async function incrementHourlyAnalytics({ hour, gender, activeUsers }) {
       female: 0,
       peakActive: 0,
     };
-
     if (!rows.includes(row)) rows.push(row);
     row.total += 1;
     if (gender === "male") row.male += 1;
@@ -239,7 +249,6 @@ async function listHourlyAnalytics(limit = 48) {
     "SELECT hour, total, male, female, peak_active FROM hourly_analytics ORDER BY hour DESC LIMIT $1",
     [limit],
   );
-
   return result.rows
     .map((row) => ({
       hour: row.hour,

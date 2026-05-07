@@ -1,5 +1,9 @@
 const socket = io();
+window.BlackKnightSafety?.bindSocketSafety(socket);
+window.BlackKnightSafety?.bindSocketSafety(socket);
 const pageMode = document.currentScript.dataset.roomMode;
+const profileChipsEl = document.querySelector("#profileChips");
+const translateBtnEl = document.querySelector("#translateBtn");
 
 const chatForm = document.querySelector("#chatForm");
 const messages = document.querySelector("#messages");
@@ -39,6 +43,19 @@ let remoteTypingTimer = null;
 let nextClickCount = 0;
 let localMediaReady = false;
 let pendingIceCandidates = [];
+let translateEnabled = false;
+
+const translationDictionary = {
+  hello: "नमस्ते",
+  hi: "नमस्ते",
+  thanks: "धन्यवाद",
+  friend: "दोस्त",
+  game: "खेल",
+  sad: "उदास",
+  love: "प्यार",
+  yes: "हाँ",
+  no: "नहीं",
+};
 
 let rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -57,14 +74,36 @@ function loadProfile() {
 }
 
 function setSystemMessage(text) {
-  messages.innerHTML = `<div class="empty-state">${text}</div>`;
+  const isWaitingState = /looking|waiting|finding|searching/i.test(text);
+  messages.innerHTML = isWaitingState
+    ? `<div class="empty-state"><span class="radar-loader"></span><strong>${text}</strong></div>`
+    : `<div class="empty-state">${text}</div>`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function translateText(text) {
+  return text
+    .split(/\b/)
+    .map((part) => translationDictionary[part.toLowerCase()] || part)
+    .join("");
 }
 
 function addMessage(author, text, own = false) {
   const node = messageTemplate.content.firstElementChild.cloneNode(true);
   node.classList.toggle("mine", own);
   node.querySelector("span").textContent = author;
-  node.querySelector("p").textContent = text;
+  const translated = !own && translateEnabled ? translateText(text) : "";
+  node.querySelector("p").innerHTML = translated
+    ? `${escapeHtml(translated)} <small class="translated-label">Translated</small><br><span class="original-message">${escapeHtml(text)}</span>`
+    : escapeHtml(text);
   if (messages.querySelector(".empty-state")) messages.innerHTML = "";
   messages.append(node);
   messages.scrollTop = messages.scrollHeight;
@@ -205,7 +244,7 @@ function startMatching() {
   if (!currentUser) return;
 
   updateMatchUI();
-  setSystemMessage(pageMode === "video" ? "Looking for a video chat match..." : "Looking for a chat match...");
+  setSystemMessage(pageMode === "video" ? "Waiting for a matching user..." : "Searching another soul...");
 
   if (pageMode === "video") {
     if (sessionStorage.getItem("bk_video_permission_ready") !== "true") {
@@ -300,7 +339,7 @@ skipBtn.addEventListener("click", () => {
   currentMatch = null;
   stopVideoCall();
   updateMatchUI();
-  setSystemMessage(pageMode === "video" ? "Finding next video chat match..." : "Finding next chat match...");
+  setSystemMessage(pageMode === "video" ? "Waiting for a matching user..." : "Searching another soul...");
   socket.emit("next");
 });
 
@@ -315,9 +354,10 @@ blockBtn.addEventListener("click", () => {
 
 reportBtn.addEventListener("click", () => {
   if (!currentMatch) return;
-  const reason = window.prompt("Report reason: harassment, spam, nudity, underage, scam, or other", "Abusive or unsafe behavior");
+  const category = window.BlackKnightSafety?.pickReportCategory?.() || "Abuse";
+  const reason = window.prompt("Optional report detail:", category);
   if (!reason) return;
-  socket.emit("report", { matchId: currentMatch.id, matchName: currentMatch.name, reason });
+  socket.emit("report", { matchId: currentMatch.id, matchName: currentMatch.name, category, reason });
 });
 
 copyCodeBtn?.addEventListener("click", async () => {
@@ -329,8 +369,15 @@ copyCodeBtn?.addEventListener("click", async () => {
   }, 1400);
 });
 
+translateBtnEl?.addEventListener("click", () => {
+  translateEnabled = !translateEnabled;
+  translateBtnEl.classList.toggle("active", translateEnabled);
+  translateBtnEl.textContent = translateEnabled ? "Translate on" : "Translate";
+});
+
 socket.on("waiting", (payload) => {
   currentMatch = null;
+  document.body.classList.remove("is-matched");
   stopVideoCall(false);
   updateMatchUI();
   setSystemMessage(payload.message || "Waiting for a matching user...");
@@ -338,12 +385,35 @@ socket.on("waiting", (payload) => {
 
 socket.on("matched", (payload) => {
   currentMatch = payload.match;
+  document.body.classList.add("is-matched");
+  if (profileChipsEl) {
+    const moodChip = currentMatch.mood ? `<span class="neon-chip">${escapeHtml(currentMatch.mood)}</span>` : "";
+    const reputationChip = `<span class="neon-chip">Rep ${currentMatch.reputationScore || 80}</span>`;
+    const badges = (currentMatch.badges || []).map((badge) => `<span class="neon-chip purple">${escapeHtml(badge)}</span>`).join("");
+    profileChipsEl.innerHTML = `${moodChip}${reputationChip}${badges}`;
+  }
   stopVideoCall(false);
   updateMatchUI();
 
   if (payload.reconnectCode) {
     activeReconnectCode = payload.reconnectCode;
     localStorage.setItem(storageKeys.reconnectCode, payload.reconnectCode);
+    {
+      const history = JSON.parse(localStorage.getItem("bk_recent_connections") || "[]");
+      const nextHistory = [
+        { code: payload.reconnectCode, name: currentMatch?.name || "Guest", mode: pageMode, time: Date.now() },
+        ...history.filter((item) => item.code !== payload.reconnectCode),
+      ].slice(0, 8);
+      localStorage.setItem("bk_recent_connections", JSON.stringify(nextHistory));
+    }
+    const history = JSON.parse(localStorage.getItem("bk_reconnect_history") || "[]");
+    localStorage.setItem(
+      "bk_reconnect_history",
+      JSON.stringify([
+        { code: payload.reconnectCode, name: currentMatch.name, savedAt: new Date().toISOString() },
+        ...history.filter((item) => item.code !== payload.reconnectCode),
+      ].slice(0, 8)),
+    );
     reconnectCode.innerHTML = `Reconnect code: <strong>${payload.reconnectCode}</strong> · /reconnect.html`;
     copyCodeBtn?.classList.add("visible");
   }
@@ -454,6 +524,10 @@ socket.on("match-ended", (payload) => {
 
 socket.on("report-saved", () => addMessage("System", "Report saved for admin review."));
 
+socket.on("moderation-warning", (payload) => {
+  addMessage("System", payload.message || "Message blocked by moderation.");
+});
+
 socket.on("disconnect", () => {
   if (wasBanned) return;
   currentMatch = null;
@@ -472,3 +546,68 @@ socket.on("banned", (payload) => {
 });
 
 loadRuntimeConfig().then(startMatching);
+
+window.addSystemMessage = (text) => addMessage("System", text);
+
+(function addSafetyControls() {
+  const controls = document.querySelector(".call-controls");
+  if (!controls || document.querySelector("#leaveNowBtn")) return;
+
+  const leave = document.createElement("button");
+  leave.id = "leaveNowBtn";
+  leave.type = "button";
+  leave.className = "danger";
+  leave.textContent = "Leave instantly";
+  leave.addEventListener("click", () => {
+    currentMatch = null;
+    stopVideoCall(false);
+    socket.emit("next");
+    setSystemMessage("You left instantly. Searching another soul...");
+  });
+
+  const blur = document.createElement("button");
+  blur.id = "blurVideoBtn";
+  blur.type = "button";
+  blur.textContent = "Blur video";
+  blur.addEventListener("click", () => {
+    document.body.classList.toggle("privacy-blur");
+    blur.textContent = document.body.classList.contains("privacy-blur") ? "Unblur video" : "Blur video";
+  });
+
+  controls.append(leave, blur);
+})();
+
+(function enhanceRoomExperience() {
+  window.addSystemMessage = (text) => addMessage("System", text);
+
+  const header = document.querySelector(".match-header");
+  if (header && !document.querySelector("#translateToggle")) {
+    const toolRow = document.createElement("div");
+    toolRow.className = "room-tools";
+    toolRow.innerHTML = `
+      <button id="translateToggle" type="button" class="tool-pill" aria-pressed="false">Translate off</button>
+      <span class="tool-pill mood-display">${currentUser?.mood || "Chill"}</span>
+      <span class="tool-pill badge-display">Respectful · 72</span>
+    `;
+    header.after(toolRow);
+
+    const toggle = toolRow.querySelector("#translateToggle");
+    const enabled = localStorage.getItem("bk_translate_enabled") === "true";
+    toggle.textContent = enabled ? "Translate on" : "Translate off";
+    toggle.setAttribute("aria-pressed", String(enabled));
+    toggle.addEventListener("click", () => {
+      const next = localStorage.getItem("bk_translate_enabled") !== "true";
+      localStorage.setItem("bk_translate_enabled", String(next));
+      toggle.textContent = next ? "Translate on" : "Translate off";
+      toggle.setAttribute("aria-pressed", String(next));
+      addMessage("System", next ? "Translation structure enabled. API can be connected later." : "Translation disabled.");
+    });
+  }
+
+  if (messages && !document.querySelector(".icebreaker-card")) {
+    const card = document.createElement("div");
+    card.className = "icebreaker-card";
+    card.textContent = "Ask them: What changed your life forever?";
+    messages.before(card);
+  }
+})();

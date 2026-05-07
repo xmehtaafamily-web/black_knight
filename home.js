@@ -10,11 +10,40 @@ const storageKeys = {
   name: "bk_display_name",
   email: "bk_email",
   reconnectCode: "bk_reconnect_code",
+  reconnectHistory: "bk_reconnect_history",
   pendingProfile: "bk_pending_profile",
 };
 
 function getSelected(name) {
   return document.querySelector(`input[name="${name}"]:checked`).value;
+}
+
+function renderRecentConnections() {
+  const target = document.querySelector("#recentConnections");
+  if (!target) return;
+
+  const history = JSON.parse(localStorage.getItem(storageKeys.reconnectHistory) || "[]").slice(0, 5);
+  target.innerHTML = history.length
+    ? `
+      <p class="eyebrow">Recent Connections</p>
+      <div class="recent-list">
+        ${history
+          .map(
+            (item) => `
+              <a href="./reconnect.html" class="recent-chip" data-code="${item.code}">
+                <strong>${item.code}</strong>
+                <span>${new Date(item.savedAt).toLocaleString()}</span>
+              </a>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
+
+  target.querySelectorAll("[data-code]").forEach((item) => {
+    item.addEventListener("click", () => localStorage.setItem(storageKeys.reconnectCode, item.dataset.code));
+  });
 }
 
 function getDeviceId() {
@@ -76,12 +105,14 @@ profileForm.addEventListener("submit", async (event) => {
 
   const profile = {
     name: displayNameInput.value.trim() || "Guest",
-    email: emailInput.value.trim(),
+    email: "",
     deviceId: getDeviceId(),
     savedCode: savedCodeInput.value.trim().toUpperCase(),
     gender: getSelected("gender"),
     preference: getSelected("preference"),
+    mood: getSelected("mood"),
     mode,
+    mood: document.querySelector('input[name="mood"]:checked')?.value || localStorage.getItem("bk_mood") || "Chill",
   };
 
   localStorage.setItem(storageKeys.name, profile.name);
@@ -97,3 +128,76 @@ document.querySelectorAll('input[name="chatMode"]').forEach((input) => {
 
 loadSavedProfile();
 updateStartButtonText();
+
+if (emailInput?.closest("label")) {
+  emailInput.closest("label").style.display = "none";
+}
+
+window.BlackKnightSafety?.ensureGuestSession?.();
+window.BlackKnightSafety?.showSafetyPopup?.();
+
+(function enhanceHomeExperience() {
+  const moodOptions = ["Chill", "Deep Talk", "Gamer", "Flirty", "Emotional", "Night Owl"];
+  const introCopy = document.querySelector(".intro-copy");
+  if (introCopy) {
+    introCopy.innerHTML = `
+      <p class="eyebrow">Random chat and video matching</p>
+      <h1>Enter The Unknown</h1>
+      <p>Meet strangers instantly through text or live video.</p>
+      <div class="live-stats" aria-label="Live platform stats">
+        <span><strong>12,421</strong> Online</span>
+        <span><strong>1,281</strong> Video Chats Live</span>
+        <span><strong>85</strong> Countries Active</span>
+      </div>
+    `;
+  }
+
+  if (!document.querySelector("#moodSelector")) {
+    const modeGroup = document.querySelector('input[name="chatMode"]')?.closest(".field-group");
+    const savedMood = localStorage.getItem("bk_mood") || "Chill";
+    const moodBlock = document.createElement("div");
+    moodBlock.className = "field-group mood-section";
+    moodBlock.innerHTML = `
+      <span>Choose mood</span>
+      <div id="moodSelector" class="mood-grid" role="radiogroup" aria-label="Mood">
+        ${moodOptions
+          .map(
+            (mood) => `
+              <label class="mood-option">
+                <input type="radio" name="mood" value="${mood}" ${mood === savedMood ? "checked" : ""} />
+                <span>${mood}</span>
+              </label>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+    modeGroup?.after(moodBlock);
+    moodBlock.querySelectorAll('input[name="mood"]').forEach((input) => {
+      input.addEventListener("change", () => localStorage.setItem("bk_mood", input.value));
+    });
+  }
+
+  if (!document.querySelector(".feature-docks")) {
+    const form = document.querySelector("#profileForm");
+    const recent = JSON.parse(localStorage.getItem("bk_recent_connections") || "[]");
+    const docks = document.createElement("div");
+    docks.className = "feature-docks";
+    docks.innerHTML = `
+      <a href="/rooms.html" class="feature-card">
+        <span>Midnight Rooms</span>
+        <strong>3AM Thoughts, Deep Talks, Chill Zone</strong>
+      </a>
+      <a href="/confessions.html" class="feature-card">
+        <span>Confession Wall</span>
+        <strong>Anonymous confessions with reactions</strong>
+      </a>
+      <div class="feature-card">
+        <span>Recent Connections</span>
+        <strong>${recent.length ? recent.slice(0, 3).map((item) => item.code).join(" · ") : "Saved reconnect codes appear here"}</strong>
+      </div>
+    `;
+    form?.after(docks);
+  }
+})();
+renderRecentConnections();
