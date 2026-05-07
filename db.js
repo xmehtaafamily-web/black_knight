@@ -5,6 +5,7 @@ const { Pool } = require("pg");
 const REPORTS_FILE = path.join(__dirname, "reports.json");
 const BANS_FILE = path.join(__dirname, "bans.json");
 const ANALYTICS_FILE = path.join(__dirname, "analytics.json");
+const RADIO_FILE = path.join(__dirname, "radio.json");
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 function readJson(file) {
@@ -260,6 +261,78 @@ async function listHourlyAnalytics(limit = 48) {
     .reverse();
 }
 
+const defaultRadioStations = [
+  { frequency: "98.30", name: "Radio Mirchi", pageUrl: "https://onlineradiofm.in/stations/mirchi", streamUrl: "", locked: true },
+  { frequency: "93.50", name: "Red FM", pageUrl: "https://onlineradiofm.com.in/red-fm", streamUrl: "", locked: true },
+  { frequency: "92.70", name: "Big FM", pageUrl: "https://onlineradiofm.in/stations/big", streamUrl: "", locked: true },
+  { frequency: "104.80", name: "Ishq FM", pageUrl: "https://onlineradiofm.in/stations/ishq", streamUrl: "", locked: true },
+  { frequency: "106.40", name: "AIR FM Gold", pageUrl: "https://onlineradiofm.in/stations/fm-gold", streamUrl: "", locked: true },
+];
+
+async function listRadioStations() {
+  if (!pool) {
+    const rows = readJson(RADIO_FILE);
+    return rows.length ? rows : defaultRadioStations;
+  }
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS radio_stations (
+      frequency TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      page_url TEXT,
+      stream_url TEXT,
+      locked BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+
+  const existing = await pool.query("SELECT frequency FROM radio_stations LIMIT 1");
+  if (!existing.rows.length) {
+    for (const station of defaultRadioStations) await saveRadioStation(station);
+  }
+
+  const result = await pool.query("SELECT * FROM radio_stations ORDER BY frequency::numeric ASC");
+  return result.rows.map((row) => ({
+    frequency: row.frequency,
+    name: row.name,
+    pageUrl: row.page_url || "",
+    streamUrl: row.stream_url || "",
+    locked: row.locked,
+    updatedAt: row.updated_at,
+  }));
+}
+
+async function saveRadioStation(station) {
+  const row = {
+    frequency: station.frequency,
+    name: station.name,
+    pageUrl: station.pageUrl || "",
+    streamUrl: station.streamUrl || "",
+    locked: station.locked !== false,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!pool) {
+    const rows = await listRadioStations();
+    const nextRows = [row, ...rows.filter((item) => item.frequency !== row.frequency)].sort(
+      (a, b) => Number(a.frequency) - Number(b.frequency),
+    );
+    writeJson(RADIO_FILE, nextRows);
+    return row;
+  }
+
+  await pool.query(
+    `
+      INSERT INTO radio_stations (frequency, name, page_url, stream_url, locked, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (frequency)
+      DO UPDATE SET name = $2, page_url = $3, stream_url = $4, locked = $5, updated_at = $6
+    `,
+    [row.frequency, row.name, row.pageUrl, row.streamUrl, row.locked, row.updatedAt],
+  );
+  return row;
+}
+
 module.exports = {
   initDb,
   listReports,
@@ -270,5 +343,7 @@ module.exports = {
   deleteBan,
   incrementHourlyAnalytics,
   listHourlyAnalytics,
+  listRadioStations,
+  saveRadioStation,
   usingPostgres: Boolean(pool),
 };

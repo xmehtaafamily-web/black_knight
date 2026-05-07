@@ -2340,6 +2340,33 @@ body.video-fullscreen-active .video-stage .self-preview {
   background: #020617;
 }
 
+#walkieRadioAudio {
+  display: none;
+  width: 100%;
+}
+
+#walkieRadioAudio.visible {
+  display: block;
+}
+
+.radio-admin-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.radio-admin-form .check-row,
+.radio-admin-form button {
+  align-self: end;
+}
+
+@media (max-width: 720px) {
+  .radio-admin-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 .talk-btn {
   min-height: 78px !important;
   border-radius: 999px !important;

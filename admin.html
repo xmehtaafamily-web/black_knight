@@ -296,6 +296,22 @@
         </div>
         <div id="reportsList" class="admin-list"></div>
       </section>
+
+      <section class="admin-card" style="margin-top: 14px;">
+        <div class="card-header">
+          <h2>Radio Frequency Manager</h2>
+          <span class="row-detail">Controls Walkie radio-locked frequencies</span>
+        </div>
+        <form id="radioForm" class="radio-admin-form">
+          <label>Frequency<input id="radioFrequency" type="number" min="30" max="106.4" step="0.01" placeholder="98.30" /></label>
+          <label>Station name<input id="radioName" type="text" maxlength="60" placeholder="Radio Mirchi" /></label>
+          <label>Page URL<input id="radioPageUrl" type="url" placeholder="https://..." /></label>
+          <label>Direct stream URL<input id="radioStreamUrl" type="url" placeholder="https://.../live.mp3" /></label>
+          <label class="check-row"><input id="radioLocked" type="checkbox" checked /> Lock voice on this frequency</label>
+          <button class="admin-btn" type="submit">Save radio frequency</button>
+        </form>
+        <div id="radioList" class="admin-list"></div>
+      </section>
     </main>
 
     <script>
@@ -309,6 +325,13 @@
       const reportsList = document.querySelector("#reportsList");
       const bansList = document.querySelector("#bansList");
       const filterTabs = document.querySelector(".filter-tabs");
+      const radioForm = document.querySelector("#radioForm");
+      const radioList = document.querySelector("#radioList");
+      const radioFrequency = document.querySelector("#radioFrequency");
+      const radioName = document.querySelector("#radioName");
+      const radioPageUrl = document.querySelector("#radioPageUrl");
+      const radioStreamUrl = document.querySelector("#radioStreamUrl");
+      const radioLocked = document.querySelector("#radioLocked");
 
       let currentReports = [];
       let reportFilter = "all";
@@ -332,6 +355,7 @@
         analyticsCard.style.display = loggedIn ? "block" : "none";
         reportsList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
         bansList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        radioForm.closest(".admin-card").style.display = loggedIn ? "block" : "none";
         refreshBtn.style.display = loggedIn ? "inline-block" : "none";
         logoutBtn.style.display = loggedIn ? "inline-block" : "none";
       }
@@ -424,6 +448,35 @@
           : '<div class="empty-admin">No bans yet.</div>';
       }
 
+      function renderRadioStations(rows) {
+        radioList.innerHTML = rows.length
+          ? rows
+              .map(
+                (station) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(station.frequency)} FM · ${escapeHtml(station.name)}</strong>
+                      <span>${station.locked ? "Voice locked" : "Voice enabled"} · ${station.streamUrl ? "Stream ready" : "No direct stream"}</span>
+                    </div>
+                    <div class="row-detail">
+                      Page: ${escapeHtml(station.pageUrl || "-")}<br />
+                      Stream: ${escapeHtml(station.streamUrl || "-")}
+                    </div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="edit-radio" data-frequency="${escapeHtml(station.frequency)}">Edit</button>
+                      ${
+                        station.streamUrl
+                          ? `<button class="row-action" type="button" data-action="test-radio" data-stream="${escapeHtml(station.streamUrl)}">Test</button>`
+                          : ""
+                      }
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No radio frequencies configured.</div>';
+      }
+
       async function loadDashboard() {
         const statsResponse = await fetch("/api/admin/stats");
         if (statsResponse.status === 401) {
@@ -443,6 +496,9 @@
 
         const bansResponse = await fetch("/api/bans");
         if (bansResponse.ok) renderBans(await bansResponse.json());
+
+        const radioResponse = await fetch("/api/admin/radio");
+        if (radioResponse.ok) renderRadioStations(await radioResponse.json());
       }
 
       async function checkLogin() {
@@ -521,6 +577,49 @@
         if (!button) return;
         await fetch(`/api/bans/${encodeURIComponent(button.dataset.id)}`, { method: "DELETE" });
         loadDashboard();
+      });
+
+      radioForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const response = await fetch("/api/admin/radio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            frequency: radioFrequency.value,
+            name: radioName.value,
+            pageUrl: radioPageUrl.value,
+            streamUrl: radioStreamUrl.value,
+            locked: radioLocked.checked,
+          }),
+        });
+        if (!response.ok) {
+          window.alert("Radio frequency save failed.");
+          return;
+        }
+        radioForm.reset();
+        radioLocked.checked = true;
+        loadDashboard();
+      });
+
+      radioList.addEventListener("click", async (event) => {
+        const edit = event.target.closest("button[data-action='edit-radio']");
+        if (edit) {
+          const rows = await (await fetch("/api/admin/radio")).json();
+          const station = rows.find((item) => item.frequency === edit.dataset.frequency);
+          if (!station) return;
+          radioFrequency.value = station.frequency;
+          radioName.value = station.name;
+          radioPageUrl.value = station.pageUrl || "";
+          radioStreamUrl.value = station.streamUrl || "";
+          radioLocked.checked = station.locked !== false;
+          radioFrequency.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+
+        const test = event.target.closest("button[data-action='test-radio']");
+        if (test?.dataset.stream) {
+          new Audio(test.dataset.stream).play().catch(() => window.alert("Browser blocked autoplay. Try opening after a click."));
+        }
       });
 
       checkLogin();

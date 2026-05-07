@@ -7,6 +7,7 @@ const frequencyInput = document.querySelector("#frequencyInput");
 const statusText = document.querySelector("#walkieStatus");
 const messages = document.querySelector("#walkieMessages");
 const radioLockPanel = document.querySelector("#radioLockPanel");
+const walkieRadioAudio = document.querySelector("#walkieRadioAudio");
 const voiceStatus = document.querySelector("#voiceStatus");
 const form = document.querySelector("#walkieForm");
 const input = document.querySelector("#walkieInput");
@@ -164,6 +165,11 @@ function renderRadioLock(radio) {
   if (!radio) {
     radioLockPanel.innerHTML = "";
     radioLockPanel.classList.remove("visible");
+    if (walkieRadioAudio) {
+      walkieRadioAudio.pause();
+      walkieRadioAudio.removeAttribute("src");
+      walkieRadioAudio.classList.remove("visible");
+    }
     talkBtn.disabled = !activeFrequency;
     return;
   }
@@ -173,13 +179,26 @@ function renderRadioLock(radio) {
     <div>
       <span>Radio frequency locked</span>
       <strong>${window.BlackKnightSafety?.escapeText(radio.name) || radio.name}</strong>
-      <small>Voice disabled. Chat is open for this channel.</small>
+      <small>${radio.streamUrl ? "Live radio will play automatically." : "Direct stream URL needed for auto live audio. Chat is open."}</small>
     </div>
     <a href="${radio.pageUrl}" target="_blank" rel="noopener noreferrer">Open live radio</a>
-    <iframe title="${window.BlackKnightSafety?.escapeText(radio.name) || radio.name}" src="${radio.pageUrl}" loading="lazy"></iframe>
+    <iframe title="${window.BlackKnightSafety?.escapeText(radio.name) || radio.name}" src="${radio.pageUrl}" loading="lazy" allow="autoplay"></iframe>
   `;
   talkBtn.disabled = true;
   talkBtn.textContent = "Radio only";
+
+  if (walkieRadioAudio) {
+    if (radio.streamUrl) {
+      walkieRadioAudio.src = radio.streamUrl;
+      walkieRadioAudio.classList.add("visible");
+      walkieRadioAudio.play().catch(() => showVoiceStatus("Tap play to start radio audio."));
+    } else {
+      walkieRadioAudio.pause();
+      walkieRadioAudio.removeAttribute("src");
+      walkieRadioAudio.classList.remove("visible");
+      showVoiceStatus("Direct stream URL chahiye. Page URL auto radio audio nahi chala sakta.");
+    }
+  }
 }
 
 function normalizeFrequency(value) {

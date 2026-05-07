@@ -13,6 +13,8 @@ const {
   deleteBan,
   incrementHourlyAnalytics,
   listHourlyAnalytics,
+  listRadioStations,
+  saveRadioStation,
   usingPostgres,
 } = require("./db");
 const security = require("./security");
@@ -57,16 +59,19 @@ function normalizeWalkieFrequency(value) {
   return number.toFixed(2);
 }
 
-const radioLockedFrequencies = {
-  "98.30": { name: "Radio Mirchi", pageUrl: "https://onlineradiofm.in/stations/mirchi" },
-  "93.50": { name: "Red FM", pageUrl: "https://onlineradiofm.com.in/red-fm" },
-  "92.70": { name: "Big FM", pageUrl: "https://onlineradiofm.in/stations/big" },
-  "104.80": { name: "Ishq FM", pageUrl: "https://onlineradiofm.in/stations/ishq" },
-  "106.40": { name: "AIR FM Gold", pageUrl: "https://onlineradiofm.in/stations/fm-gold" },
-};
+const radioLockedFrequencies = new Map();
+
+async function refreshRadioStations() {
+  const rows = await listRadioStations();
+  radioLockedFrequencies.clear();
+  rows.forEach((station) => {
+    if (station.locked) radioLockedFrequencies.set(station.frequency, station);
+  });
+  return rows;
+}
 
 function getRadioLock(frequency) {
-  return radioLockedFrequencies[frequency] || null;
+  return radioLockedFrequencies.get(frequency) || null;
 }
 
 function getWalkieStats(frequency) {
@@ -472,6 +477,27 @@ app.get("/api/rooms", (request, response) => {
       activity: roomMessages.get(room.id)?.length || 0,
     })),
   );
+});
+
+app.get("/api/admin/radio", requireAdmin, async (request, response) => {
+  response.json(await refreshRadioStations());
+});
+
+app.post("/api/admin/radio", requireAdmin, async (request, response) => {
+  const frequency = normalizeWalkieFrequency(request.body?.frequency);
+  const name = security.sanitizeText(request.body?.name || "", 60);
+  const pageUrl = security.sanitizeText(request.body?.pageUrl || "", 300);
+  const streamUrl = security.sanitizeText(request.body?.streamUrl || "", 500);
+  const locked = request.body?.locked !== false;
+
+  if (!frequency || !name) {
+    response.status(400).json({ error: "Valid frequency and name are required." });
+    return;
+  }
+
+  const station = await saveRadioStation({ frequency, name, pageUrl, streamUrl, locked });
+  await refreshRadioStations();
+  response.json(station);
 });
 
 app.get("/api/walkie/frequencies", (request, response) => {
@@ -930,6 +956,9 @@ io.on("connection", (socket) => {
 setInterval(security.cleanupSecurityState, 5 * 60 * 1000).unref();
 
 initDb()
+  .then(() => {
+    return refreshRadioStations();
+  })
   .then(() => {
     server.listen(PORT, () => {
       console.log(`Black_knight running on http://localhost:${PORT}`);
