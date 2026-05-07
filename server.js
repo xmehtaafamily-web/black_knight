@@ -552,6 +552,7 @@ io.on("connection", (socket) => {
       "join-public-room": ["roomJoin", 8, 60000],
       "public-room-message": ["roomMessage", 18, 10000],
       "walkie-audio": ["walkieAudio", 90, 10000],
+      "walkie-live-audio": ["walkieLiveAudio", 140, 10000],
     };
     const limit = limits[eventName];
     if (limit && !security.rateLimit(`${limit[0]}:${session.id}`, limit[1], limit[2]).allowed) {
@@ -811,7 +812,12 @@ io.on("connection", (socket) => {
     walkieChannels.set(frequency, usersOnFrequency);
     socket.join(`walkie:${frequency}`);
     socket.data.walkieFrequency = frequency;
-    socket.emit("walkie-joined", getWalkieStats(frequency));
+    const peers = Array.from(usersOnFrequency).filter((socketId) => socketId !== socket.id);
+    socket.emit("walkie-joined", { ...getWalkieStats(frequency), peerId: socket.id, peers });
+    socket.to(`walkie:${frequency}`).emit("walkie-peer-joined", {
+      peerId: socket.id,
+      profile: { name, gender },
+    });
     io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
   });
 
@@ -842,8 +848,41 @@ io.on("connection", (socket) => {
     const frequency = socket.data.walkieFrequency;
     if (!frequency || typeof payload.audio !== "string") return;
     socket.to(`walkie:${frequency}`).emit("walkie-audio", {
-      audio: payload.audio.slice(0, 90000),
+      audio: payload.audio.slice(0, 750000),
       mimeType: security.sanitizeText(payload.mimeType || "audio/webm", 40),
+    });
+  });
+
+  socket.on("walkie-live-audio", (payload = {}) => {
+    const frequency = socket.data.walkieFrequency;
+    if (!frequency || typeof payload.chunk !== "string") return;
+    socket.to(`walkie:${frequency}`).emit("walkie-live-audio", {
+      chunk: payload.chunk.slice(0, 18000),
+      sampleRate: 16000,
+    });
+  });
+
+  socket.on("walkie-webrtc-offer", (payload = {}) => {
+    if (!payload.to || !payload.description) return;
+    io.to(payload.to).emit("walkie-webrtc-offer", {
+      from: socket.id,
+      description: payload.description,
+    });
+  });
+
+  socket.on("walkie-webrtc-answer", (payload = {}) => {
+    if (!payload.to || !payload.description) return;
+    io.to(payload.to).emit("walkie-webrtc-answer", {
+      from: socket.id,
+      description: payload.description,
+    });
+  });
+
+  socket.on("walkie-webrtc-ice", (payload = {}) => {
+    if (!payload.to || !payload.candidate) return;
+    io.to(payload.to).emit("walkie-webrtc-ice", {
+      from: socket.id,
+      candidate: payload.candidate,
     });
   });
 
@@ -856,6 +895,7 @@ io.on("connection", (socket) => {
     if (user?.roomId) endMatch(user.roomId, "Match disconnected.");
     for (const [frequency, members] of walkieChannels.entries()) {
       if (members.delete(socket.id)) {
+        socket.to(`walkie:${frequency}`).emit("walkie-peer-left", { peerId: socket.id });
         io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
       }
     }

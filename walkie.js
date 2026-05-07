@@ -14,7 +14,17 @@ const talkBtn = document.querySelector("#talkBtn");
 let activeFrequency = "";
 let localAudioStream = null;
 let audioRecorder = null;
+let audioChunks = [];
 let voiceStatusTimer = null;
+let liveAudioContext = null;
+let liveSource = null;
+let liveProcessor = null;
+let playbackContext = null;
+let playbackTime = 0;
+let rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+let selfPeerId = "";
+const walkiePeers = new Map();
+const pendingIce = new Map();
 
 function getProfile() {
   return {
@@ -56,6 +66,81 @@ function showVoiceStatus(text) {
   }
 }
 
+function floatToBase64(floatSamples, inputRate, outputRate = 16000) {
+  const ratio = inputRate / outputRate;
+  const length = Math.floor(floatSamples.length / ratio);
+  const pcm = new Int16Array(length);
+
+  for (let i = 0; i < length; i += 1) {
+    const sample = Math.max(-1, Math.min(1, floatSamples[Math.floor(i * ratio)] || 0));
+    pcm[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+
+  let binary = "";
+  const bytes = new Uint8Array(pcm.buffer);
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToFloat(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const pcm = new Int16Array(bytes.buffer);
+  const floats = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i += 1) floats[i] = pcm[i] / 0x8000;
+  return floats;
+}
+
+async function startLiveAudio() {
+  if (!activeFrequency || !(await ensureMic())) return;
+  liveAudioContext = liveAudioContext || new AudioContext();
+  if (liveAudioContext.state === "suspended") await liveAudioContext.resume();
+
+  localAudioStream.getAudioTracks().forEach((track) => {
+    track.enabled = true;
+  });
+
+  liveSource = liveAudioContext.createMediaStreamSource(localAudioStream);
+  liveProcessor = liveAudioContext.createScriptProcessor(2048, 1, 1);
+  liveProcessor.onaudioprocess = (event) => {
+    const input = event.inputBuffer.getChannelData(0);
+    socket.emit("walkie-live-audio", {
+      chunk: floatToBase64(input, liveAudioContext.sampleRate),
+    });
+  };
+
+  liveSource.connect(liveProcessor);
+  liveProcessor.connect(liveAudioContext.destination);
+}
+
+function stopLiveAudio() {
+  liveProcessor?.disconnect();
+  liveSource?.disconnect();
+  liveProcessor = null;
+  liveSource = null;
+  localAudioStream?.getAudioTracks().forEach((track) => {
+    track.enabled = false;
+  });
+}
+
+async function playLiveAudio(chunk) {
+  playbackContext = playbackContext || new AudioContext({ sampleRate: 16000 });
+  if (playbackContext.state === "suspended") await playbackContext.resume();
+
+  const samples = base64ToFloat(chunk);
+  const buffer = playbackContext.createBuffer(1, samples.length, 16000);
+  buffer.copyToChannel(samples, 0);
+
+  const source = playbackContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(playbackContext.destination);
+
+  const startAt = Math.max(playbackContext.currentTime + 0.03, playbackTime);
+  source.start(startAt);
+  playbackTime = startAt + buffer.duration;
+}
+
 function renderFrequencies(rows) {
   frequencyGrid.innerHTML = rows
     .map(
@@ -79,6 +164,18 @@ function normalizeFrequency(value) {
 async function loadFrequencies() {
   const response = await fetch("/api/walkie/frequencies");
   renderFrequencies(await response.json());
+}
+
+async function loadRtcConfig() {
+  try {
+    const response = await fetch("/api/config");
+    const config = await response.json();
+    if (Array.isArray(config.iceServers) && config.iceServers.length) {
+      rtcConfig = { iceServers: config.iceServers };
+    }
+  } catch (error) {
+    rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  }
 }
 
 frequencyGrid.addEventListener("click", (event) => {
@@ -132,11 +229,80 @@ async function ensureMic() {
   }
 }
 
+function getOrCreateRemoteAudio(peerId) {
+  let audio = document.querySelector(`audio[data-walkie-peer="${peerId}"]`);
+  if (audio) return audio;
+  audio = document.createElement("audio");
+  audio.dataset.walkiePeer = peerId;
+  audio.autoplay = true;
+  audio.playsInline = true;
+  audio.controls = false;
+  document.body.appendChild(audio);
+  return audio;
+}
+
+async function createWalkiePeer(peerId, initiator = false) {
+  if (!peerId || peerId === selfPeerId) return null;
+  if (walkiePeers.has(peerId)) return walkiePeers.get(peerId);
+  await ensureMic();
+
+  const connection = new RTCPeerConnection(rtcConfig);
+  walkiePeers.set(peerId, connection);
+
+  localAudioStream.getAudioTracks().forEach((track) => {
+    track.enabled = false;
+    connection.addTrack(track, localAudioStream);
+  });
+
+  connection.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit("walkie-webrtc-ice", { to: peerId, candidate: event.candidate });
+    }
+  };
+
+  connection.ontrack = (event) => {
+    const audio = getOrCreateRemoteAudio(peerId);
+    audio.srcObject = event.streams[0];
+    audio.play().catch(() => showVoiceStatus("Tap once to allow live audio playback."));
+  };
+
+  connection.onconnectionstatechange = () => {
+    if (["failed", "closed", "disconnected"].includes(connection.connectionState)) {
+      closeWalkiePeer(peerId);
+    }
+  };
+
+  const queued = pendingIce.get(peerId) || [];
+  for (const candidate of queued) {
+    await connection.addIceCandidate(candidate).catch(() => {});
+  }
+  pendingIce.delete(peerId);
+
+  if (initiator) {
+    const offer = await connection.createOffer();
+    await connection.setLocalDescription(offer);
+    socket.emit("walkie-webrtc-offer", { to: peerId, description: connection.localDescription });
+  }
+
+  return connection;
+}
+
+function closeWalkiePeer(peerId) {
+  walkiePeers.get(peerId)?.close();
+  walkiePeers.delete(peerId);
+  document.querySelector(`audio[data-walkie-peer="${peerId}"]`)?.remove();
+}
+
+function closeAllWalkiePeers() {
+  for (const peerId of walkiePeers.keys()) closeWalkiePeer(peerId);
+}
+
 async function joinFrequency(frequency) {
   const profile = requireProfile();
   if (!profile) return;
   const micReady = await ensureMic();
   if (!micReady) return;
+  closeAllWalkiePeers();
   activeFrequency = frequency;
   frequencyInput.value = frequency;
   socket.emit("join-walkie", { frequency, ...profile });
@@ -174,33 +340,12 @@ async function startTalking() {
   localAudioStream.getAudioTracks().forEach((track) => {
     track.enabled = true;
   });
-  if (window.MediaRecorder && !audioRecorder) {
-    audioRecorder = new MediaRecorder(localAudioStream, {
-      mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm",
-    });
-    audioRecorder.addEventListener("dataavailable", (event) => {
-      if (!event.data?.size) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        socket.emit("walkie-audio", {
-          audio: reader.result,
-          mimeType: audioRecorder?.mimeType || "audio/webm",
-        });
-      };
-      reader.readAsDataURL(event.data);
-    });
-    audioRecorder.start(350);
-  }
   talkBtn.classList.add("active");
   talkBtn.textContent = "Talking...";
   socket.emit("walkie-voice", { speaking: true });
 }
 
 function stopTalking() {
-  if (audioRecorder && audioRecorder.state !== "inactive") {
-    audioRecorder.stop();
-  }
-  audioRecorder = null;
   localAudioStream?.getAudioTracks().forEach((track) => {
     track.enabled = false;
   });
@@ -229,15 +374,30 @@ talkBtn.addEventListener("touchstart", (event) => {
 
 talkBtn.addEventListener("click", async () => {
   if (!localAudioStream) await ensureMic();
+  if (!playbackContext) {
+    playbackContext = new AudioContext({ sampleRate: 16000 });
+    await playbackContext.resume().catch(() => {});
+  }
 });
 
 socket.on("walkie-joined", (payload) => {
   activeFrequency = payload.frequency;
+  selfPeerId = payload.peerId || "";
   statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
   talkBtn.disabled = false;
   messages.innerHTML = '<div class="empty-state">Channel joined. Typed messages will appear here.</div>';
   showVoiceStatus(`Joined ${payload.frequency} FM`);
+  (payload.peers || []).forEach((peerId) => createWalkiePeer(peerId, true));
   loadFrequencies();
+});
+
+socket.on("walkie-peer-joined", (payload) => {
+  if (!payload?.peerId) return;
+  createWalkiePeer(payload.peerId, false);
+});
+
+socket.on("walkie-peer-left", (payload) => {
+  if (payload?.peerId) closeWalkiePeer(payload.peerId);
 });
 
 socket.on("walkie-presence", (payload) => {
@@ -258,13 +418,52 @@ socket.on("walkie-voice", (payload) => {
 socket.on("walkie-audio", (payload) => {
   if (!payload?.audio) return;
   const audio = new Audio(payload.audio);
+  audio.preload = "auto";
+  audio.volume = 1;
   audio.play().catch(() => {
     addMessage("System", "Tap the page once to allow walkie audio playback.");
   });
+});
+
+socket.on("walkie-live-audio", (payload) => {
+  if (!payload?.chunk) return;
+  playLiveAudio(payload.chunk).catch(() => {
+    showVoiceStatus("Tap once to allow live audio playback.");
+  });
+});
+
+socket.on("walkie-webrtc-offer", async (payload) => {
+  if (!payload?.from || !payload.description) return;
+  const connection = await createWalkiePeer(payload.from, false);
+  await connection.setRemoteDescription(payload.description);
+  const queued = pendingIce.get(payload.from) || [];
+  for (const candidate of queued) await connection.addIceCandidate(candidate).catch(() => {});
+  pendingIce.delete(payload.from);
+  const answer = await connection.createAnswer();
+  await connection.setLocalDescription(answer);
+  socket.emit("walkie-webrtc-answer", { to: payload.from, description: connection.localDescription });
+});
+
+socket.on("walkie-webrtc-answer", async (payload) => {
+  const connection = walkiePeers.get(payload?.from);
+  if (!connection || !payload.description) return;
+  await connection.setRemoteDescription(payload.description).catch(() => {});
+});
+
+socket.on("walkie-webrtc-ice", async (payload) => {
+  if (!payload?.from || !payload.candidate) return;
+  const connection = walkiePeers.get(payload.from);
+  if (!connection || !connection.remoteDescription) {
+    const queued = pendingIce.get(payload.from) || [];
+    queued.push(payload.candidate);
+    pendingIce.set(payload.from, queued);
+    return;
+  }
+  await connection.addIceCandidate(payload.candidate).catch(() => {});
 });
 
 socket.on("walkie-error", (payload) => {
   addMessage("System", payload.message || "Walkie channel error.");
 });
 
-loadFrequencies();
+loadRtcConfig().then(loadFrequencies);
