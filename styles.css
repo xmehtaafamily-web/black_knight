@@ -3986,3 +3986,18 @@ button[onclick*="radio.html"],
   font-size: 0.78rem;
   font-weight: 800;
 }
+.walkie-play-radio-btn {
+  width: 100%;
+  min-height: 52px;
+  margin: 12px 0;
+  border: 1px solid rgba(0, 240, 255, 0.48);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #00f0ff, #8b5cf6);
+  color: #020617;
+  font-weight: 1000;
+  box-shadow: 0 0 28px rgba(0, 240, 255, 0.26);
+}
+
+.walkie-play-radio-btn:active {
+  transform: scale(0.98);
+}
