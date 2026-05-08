@@ -1238,6 +1238,33 @@ app.get("/api/admin/online-gender", (request, response) => {
   });
 });
 
+const feedbackItems = [];
+
+app.post("/api/feedback", (request, response) => {
+  const topic = String(request.body?.topic || "General").trim().slice(0, 80);
+  const message = String(request.body?.message || "").trim().slice(0, 1200);
+  const contact = String(request.body?.contact || "").trim().slice(0, 120);
+
+  if (message.length < 8) {
+    return response.status(400).json({ error: "Feedback message too short." });
+  }
+
+  feedbackItems.unshift({
+    id: crypto.randomUUID(),
+    topic,
+    message,
+    contact,
+    createdAt: new Date().toISOString()
+  });
+
+  if (feedbackItems.length > 200) feedbackItems.length = 200;
+  response.json({ ok: true });
+});
+
+app.get("/api/admin/feedback", (request, response) => {
+  response.json(feedbackItems.slice(0, 100));
+});
+
 server.listen(PORT, () => {
       console.log(`Black_knight running on http://localhost:${PORT}`);
       console.log(`Storage: ${usingPostgres ? "PostgreSQL" : "JSON fallback"}`);
