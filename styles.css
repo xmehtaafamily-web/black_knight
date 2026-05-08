@@ -3766,3 +3766,44 @@ video,
     height: 136px !important;
   }
 }
+/* Custom fullscreen: prevents browser video crop */
+.video-stage.call-stage.custom-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  margin: 0 !important;
+  z-index: 99999 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: #000 !important;
+}
+
+.video-stage.call-stage.custom-fullscreen .video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 0 !important;
+}
+
+.video-stage.call-stage.custom-fullscreen #remoteVideo {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: #000 !important;
+}
+
+.video-stage.call-stage.custom-fullscreen .video-tile.local.self-preview {
+  right: 18px !important;
+  bottom: 28px !important;
+  width: 120px !important;
+  height: 170px !important;
+  border-radius: 22px !important;
+  z-index: 100000 !important;
+}
+
+.video-stage.call-stage.custom-fullscreen #localVideo {
+  object-fit: cover !important;
+}

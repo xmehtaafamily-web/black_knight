@@ -105,5 +105,27 @@
     if (localVideo) localVideo.muted = true;
   });
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const videoStage = document.querySelector(".video-stage.call-stage");
+    let lastTap = 0;
+
+    function toggleCustomFullscreen(event) {
+      event.preventDefault();
+      videoStage?.classList.toggle("custom-fullscreen");
+    }
+
+    videoStage?.addEventListener("dblclick", toggleCustomFullscreen);
+    videoStage?.addEventListener("touchend", (event) => {
+      const now = Date.now();
+      if (now - lastTap < 320) {
+        toggleCustomFullscreen(event);
+        lastTap = 0;
+        return;
+      }
+      lastTap = now;
+    }, { passive: false });
+  });
+</script>
 </body>
 </html>
