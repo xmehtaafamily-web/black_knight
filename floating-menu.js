@@ -12,13 +12,32 @@
   ];
 
   function findMenuButton() {
-    const direct = selectors.map((selector) => document.querySelector(selector)).find(Boolean);
+    const direct = selectors.map((selector) => {
+      try {
+        return document.querySelector(selector);
+      } catch (error) {
+        return null;
+      }
+    }).find(Boolean);
     if (direct) return direct;
 
-    return Array.from(document.querySelectorAll("button")).find((button) => {
-      const text = String(button.textContent || "").trim();
-      return text === "⋮" || text === "..." || text === "•••" || text.includes("⋮");
+    const candidates = Array.from(document.querySelectorAll("button, [role='button'], a, div, span"));
+    const icon = candidates.find((element) => {
+      const text = String(element.textContent || element.getAttribute("aria-label") || "").trim().toLowerCase();
+      const id = String(element.id || "").toLowerCase();
+      const cls = String(element.className || "").toLowerCase();
+      return text === "⋮" ||
+        text === "..." ||
+        text === "•••" ||
+        text.includes("⋮") ||
+        text.includes("more") ||
+        id.includes("more") ||
+        id.includes("menu") ||
+        cls.includes("more") ||
+        cls.includes("menu");
     });
+
+    return icon?.closest("button, [role='button'], a, div") || icon;
   }
 
   function clamp(value, min, max) {
@@ -40,6 +59,11 @@
     if (!button || button.dataset.bkDraggableMenu === "1") return;
     button.dataset.bkDraggableMenu = "1";
     button.classList.add("bk-draggable-menu-btn");
+    if (!button.textContent.trim()) {
+      button.textContent = "⋮";
+    }
+    button.setAttribute("role", "button");
+    button.setAttribute("aria-label", button.getAttribute("aria-label") || "More menu");
     applySavedPosition(button);
 
     let dragging = false;

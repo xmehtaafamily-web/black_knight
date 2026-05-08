@@ -2991,7 +2991,10 @@ video,
 .whatsapp-video-ui .wa-remote-video,
 .whatsapp-video-ui #remoteVideo {
   position: fixed !important;
-  inset: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
   z-index: 10 !important;
   width: 100vw !important;
   height: 100dvh !important;
@@ -3002,7 +3005,7 @@ video,
   border: 0 !important;
   border-radius: 0 !important;
   background: #020617 !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center center !important;
   box-shadow: none !important;
 }
@@ -3092,10 +3095,42 @@ video,
 
 .whatsapp-video-ui .video-fullscreen-active .wa-remote-video,
 .whatsapp-video-ui.video-fullscreen-active .wa-remote-video,
-.whatsapp-video-ui.video-fullscreen-active #remoteVideo {
+.whatsapp-video-ui.video-fullscreen-active #remoteVideo,
+.whatsapp-video-ui:fullscreen .wa-remote-video,
+.whatsapp-video-ui:fullscreen #remoteVideo,
+.whatsapp-video-ui *:fullscreen .wa-remote-video,
+.whatsapp-video-ui *:fullscreen #remoteVideo {
   inset: 0 !important;
   width: 100vw !important;
   height: 100dvh !important;
+  object-fit: cover !important;
+}
+
+.whatsapp-video-ui .wa-legacy-hidden {
+  display: none !important;
+}
+
+.whatsapp-video-ui.legacy-video-controls .wa-call-dock {
+  display: none !important;
+}
+
+.whatsapp-video-ui.legacy-video-controls .wa-legacy-hidden {
+  display: initial !important;
+}
+
+.whatsapp-video-ui .video-card,
+.whatsapp-video-ui .video-frame,
+.whatsapp-video-ui .call-card,
+.whatsapp-video-ui .current-match,
+.whatsapp-video-ui .match-card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.whatsapp-video-ui .video-card:not(:has(video)),
+.whatsapp-video-ui .video-frame:not(:has(video)) {
+  display: none !important;
 }
 
 @media (max-width: 520px) {
@@ -3212,7 +3247,7 @@ video,
 }
 .bk-draggable-menu-btn {
   position: fixed !important;
-  z-index: 9998 !important;
+  z-index: 100000 !important;
   width: 54px !important;
   height: 54px !important;
   min-width: 54px !important;
@@ -3225,8 +3260,10 @@ video,
   backdrop-filter: blur(14px) !important;
   touch-action: none !important;
   user-select: none !important;
+  cursor: grab !important;
 }
 
 .bk-draggable-menu-btn:active {
   transform: scale(0.96);
+  cursor: grabbing !important;
 }

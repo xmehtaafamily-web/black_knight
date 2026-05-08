@@ -1,7 +1,7 @@
 (function () {
   if (!location.pathname.toLowerCase().includes("video")) return;
 
-  document.body.classList.add("whatsapp-video-ui");
+  document.body.classList.add("whatsapp-video-ui", "legacy-video-controls");
 
   function findButton(words) {
     const buttons = Array.from(document.querySelectorAll("button"));
@@ -21,6 +21,7 @@
   }
 
   function buildDock() {
+    return;
     if (document.querySelector(".wa-call-dock")) return;
 
     const dock = document.createElement("nav");
@@ -46,6 +47,31 @@
     });
   }
 
+  function hideLegacyVideoControls() {
+    document.querySelectorAll(".wa-legacy-hidden").forEach((element) => element.classList.remove("wa-legacy-hidden"));
+    document.querySelectorAll(".wa-call-dock").forEach((element) => element.remove());
+    return;
+    const dock = document.querySelector(".wa-call-dock");
+    const legacyButtons = Array.from(document.querySelectorAll("button")).filter((button) => {
+      if (dock?.contains(button)) return false;
+      const text = String(button.textContent || button.getAttribute("aria-label") || "").toLowerCase();
+      return text.includes("camera") ||
+        text.includes("mic") ||
+        text.includes("translate") ||
+        text.includes("blur") ||
+        text.includes("leave") ||
+        text.includes("end") ||
+        text.includes("next");
+    });
+    legacyButtons.forEach((button) => button.classList.add("wa-legacy-hidden"));
+
+    document.querySelectorAll(".video-card, .video-frame, .call-card, .current-match, .match-card").forEach((element) => {
+      if (!element.querySelector("video") && element.querySelectorAll("button").length > 0) {
+        element.classList.add("wa-legacy-hidden");
+      }
+    });
+  }
+
   function markChatArea() {
     const input = document.querySelector("input[placeholder*='message' i], textarea[placeholder*='message' i]");
     const chatArea = input?.closest("section, article, div");
@@ -68,6 +94,7 @@
     buildDock();
     markVideos();
     markChatArea();
+    hideLegacyVideoControls();
   }
 
   document.addEventListener("DOMContentLoaded", sync);
