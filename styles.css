@@ -4001,6 +4001,19 @@ button[onclick*="radio.html"],
 .walkie-play-radio-btn:active {
   transform: scale(0.98);
 }
+
+.walkie-play-radio-floating {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  z-index: 10000;
+  width: min(420px, calc(100% - 28px));
+  transform: translateX(-50%);
+}
+
+.walkie-play-radio-floating:active {
+  transform: translateX(-50%) scale(0.98);
+}
 .home-feedback-btn {
   position: fixed;
   right: 16px;
