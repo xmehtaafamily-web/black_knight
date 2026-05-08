@@ -3267,3 +3267,348 @@ video,
   transform: scale(0.96);
   cursor: grabbing !important;
 }
+/* Video Chat Fix */
+.video-call-screen {
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: #020617;
+}
+
+.video-grid,
+.video-room,
+.call-video-wrap {
+  width: 100%;
+  height: 100%;
+}
+
+.video-card,
+.video-box,
+.remote-video-box,
+.local-video-box {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  border-radius: 22px;
+}
+
+.video-box {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+}
+
+.remote-video-box {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.local-video-box {
+  width: 130px;
+  height: 180px;
+}
+
+.video-box video,
+video,
+#localVideo,
+#remoteVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+  background: #000;
+}
+
+#localVideo {
+  transform: scaleX(-1);
+}
+/* ===== Video Chat Full Fit Fix ===== */
+
+.video-stage.call-stage {
+  position: relative;
+  width: 100%;
+  min-height: 68vh;
+  height: 68vh;
+  overflow: hidden;
+  border-radius: 26px;
+  background: #000;
+}
+
+.video-tile {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-tile.remote {
+  width: 100%;
+  height: 100%;
+  min-height: 68vh;
+  border-radius: 26px;
+}
+
+.video-tile.remote video,
+#remoteVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+  background: #000;
+}
+
+.video-tile.local.self-preview {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 128px;
+  height: 178px;
+  z-index: 5;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  background: #000;
+}
+
+.video-tile.local.self-preview video,
+#localVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+  background: #000;
+  transform: scaleX(-1);
+}
+
+/* Labels/icons should stay above video */
+.video-tile strong,
+.video-tile .camera-icon,
+.video-tile .privacy-watermark {
+  position: absolute;
+  z-index: 6;
+}
+
+.video-tile.remote strong {
+  left: 16px;
+  bottom: 16px;
+}
+
+.video-tile.local strong {
+  left: 10px;
+  bottom: 10px;
+  font-size: 12px;
+}
+
+.privacy-watermark {
+  top: 14px;
+  right: 16px;
+}
+
+.camera-icon {
+  top: 14px;
+  left: 16px;
+}
+
+/* Mobile fix */
+@media (max-width: 640px) {
+  .video-stage.call-stage {
+    height: 64vh;
+    min-height: 64vh;
+    border-radius: 22px;
+  }
+
+  .video-tile.remote {
+    min-height: 64vh;
+    border-radius: 22px;
+  }
+
+  .video-tile.local.self-preview {
+    width: 104px;
+    height: 148px;
+    right: 12px;
+    bottom: 12px;
+    border-radius: 16px;
+  }
+}
+/* =========================================================
+   BLACK_KNIGHT VIDEO CHAT - BEST FINAL VIDEO FIT FIX
+   Remote = full stage, You = floating preview
+   ========================================================= */
+
+.video-stage.call-stage {
+  position: relative !important;
+  width: 100% !important;
+  height: 68vh !important;
+  min-height: 520px !important;
+  max-height: 760px !important;
+  overflow: hidden !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at top, rgba(124, 58, 237, 0.22), transparent 36%),
+    linear-gradient(145deg, #030712, #020617) !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Remote user video - main full area */
+.video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: 28px !important;
+  background: #000 !important;
+}
+
+/* Fix remote half/cropped problem */
+.video-tile.remote video,
+#remoteVideo {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  background: #000 !important;
+}
+
+/* Local You preview - floating professional PIP */
+.video-tile.local.self-preview {
+  position: absolute !important;
+  right: 18px !important;
+  bottom: 18px !important;
+  width: 132px !important;
+  height: 184px !important;
+  z-index: 20 !important;
+  overflow: hidden !important;
+  border-radius: 22px !important;
+  background: #000 !important;
+  border: 2px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
+}
+
+/* Local video mirror + full fit */
+.video-tile.local.self-preview video,
+#localVideo {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: scaleX(-1) !important;
+  background: #000 !important;
+}
+
+/* Keep labels above video */
+.video-tile .camera-icon,
+.video-tile strong,
+.video-tile .privacy-watermark {
+  position: absolute !important;
+  z-index: 30 !important;
+  pointer-events: none !important;
+}
+
+.video-tile.remote .camera-icon {
+  top: 18px !important;
+  left: 18px !important;
+}
+
+.video-tile.remote strong {
+  left: 18px !important;
+  bottom: 18px !important;
+  padding: 8px 12px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.video-tile.local.self-preview .camera-icon {
+  top: 10px !important;
+  left: 10px !important;
+  font-size: 10px !important;
+}
+
+.video-tile.local.self-preview strong {
+  left: 10px !important;
+  bottom: 10px !important;
+  padding: 5px 8px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  background: rgba(0, 0, 0, 0.52) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.privacy-watermark {
+  top: 18px !important;
+  right: 18px !important;
+  padding: 7px 11px !important;
+  border-radius: 999px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 12px !important;
+  background: rgba(0, 0, 0, 0.36) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* When video is not connected, keep premium black stage */
+#remoteVideo:not([srcObject]) {
+  background: #000 !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .video-stage.call-stage {
+    height: 64vh !important;
+    min-height: 430px !important;
+    max-height: 680px !important;
+    border-radius: 24px !important;
+  }
+
+  .video-tile.remote {
+    border-radius: 24px !important;
+  }
+
+  .video-tile.local.self-preview {
+    width: 112px !important;
+    height: 156px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .privacy-watermark {
+    top: 14px !important;
+    right: 14px !important;
+    font-size: 11px !important;
+  }
+
+  .video-tile.remote strong {
+    left: 14px !important;
+    bottom: 14px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .video-stage.call-stage {
+    height: 62vh !important;
+    min-height: 390px !important;
+  }
+
+  .video-tile.local.self-preview {
+    width: 96px !important;
+    height: 136px !important;
+  }
+}

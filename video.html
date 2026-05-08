@@ -91,5 +91,18 @@
 <script src="/required-profile.js"></script>
 <script src="/floating-menu.js"></script>
 <script src="/interstitial.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const remoteVideo = document.getElementById("remoteVideo");
+    const localVideo = document.getElementById("localVideo");
+    [remoteVideo, localVideo].forEach((video) => {
+      if (!video) return;
+      video.setAttribute("autoplay", "");
+      video.setAttribute("playsinline", "");
+      video.play?.().catch?.(() => {});
+    });
+    if (localVideo) localVideo.muted = true;
+  });
+</script>
 </body>
 </html>
