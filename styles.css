@@ -3612,3 +3612,157 @@ video,
     height: 136px !important;
   }
 }
+/* =========================================================
+   FINAL SAME-LOOK VIDEO CALL FIX
+   Same portrait frame on mobile + desktop
+   ========================================================= */
+.video-stage.call-stage {
+  position: relative !important;
+  width: min(100%, 540px) !important;
+  height: min(72vh, 720px) !important;
+  min-height: 560px !important;
+  margin: 24px auto !important;
+  overflow: hidden !important;
+  border-radius: 30px !important;
+  background: #000 !important;
+  border: 1px solid rgba(0, 229, 255, 0.45) !important;
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(0, 229, 255, 0.14) inset !important;
+}
+
+/* Remote video main portrait card */
+.video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: 30px !important;
+  background: #000 !important;
+}
+
+/* Remote video fit */
+#remoteVideo,
+.video-tile.remote video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  background: #000 !important;
+}
+
+/* You preview */
+.video-tile.local.self-preview {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: 128px !important;
+  height: 180px !important;
+  z-index: 20 !important;
+  overflow: hidden !important;
+  border-radius: 22px !important;
+  background: #000 !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75) !important;
+}
+
+#localVideo,
+.video-tile.local.self-preview video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: scaleX(-1) !important;
+  background: #000 !important;
+}
+
+/* Labels */
+.video-tile strong,
+.video-tile .camera-icon,
+.video-tile .privacy-watermark {
+  position: absolute !important;
+  z-index: 30 !important;
+}
+
+.video-tile.remote strong {
+  left: 18px !important;
+  bottom: 18px !important;
+  padding: 8px 14px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  background: rgba(0, 0, 0, 0.48) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.video-tile.local.self-preview strong {
+  left: 10px !important;
+  bottom: 10px !important;
+  padding: 5px 9px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  background: rgba(0, 0, 0, 0.55) !important;
+}
+
+.privacy-watermark {
+  top: 16px !important;
+  right: 16px !important;
+  padding: 7px 12px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  background: rgba(0, 0, 0, 0.42) !important;
+}
+
+/* Desktop: keep same portrait shape, not wide */
+@media (min-width: 769px) {
+  .video-stage.call-stage {
+    width: 540px !important;
+    height: 720px !important;
+    min-height: 720px !important;
+    max-height: 720px !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .video-stage.call-stage {
+    width: 100% !important;
+    height: 64vh !important;
+    min-height: 430px !important;
+    max-height: 640px !important;
+    margin: 18px auto !important;
+    border-radius: 24px !important;
+  }
+
+  .video-tile.remote {
+    border-radius: 24px !important;
+  }
+
+  .video-tile.local.self-preview {
+    width: 112px !important;
+    height: 156px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    border-radius: 18px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .video-stage.call-stage {
+    height: 62vh !important;
+    min-height: 390px !important;
+  }
+
+  .video-tile.local.self-preview {
+    width: 96px !important;
+    height: 136px !important;
+  }
+}
