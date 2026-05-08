@@ -3,6 +3,7 @@
     (location.pathname.includes("video") ? "video" : location.pathname.includes("chat") ? "chat" : "site");
   const counterKey = `bk_${pageType}_switch_count`;
   const shownKey = `bk_${pageType}_last_interstitial_at`;
+  const campaignIndexKey = "bk_sponsor_campaign_index";
   const sponsorCampaigns = [
     {
       name: "Apple Music",
@@ -51,7 +52,9 @@
   }
 
   function buildOverlay() {
-    const campaign = sponsorCampaigns[Math.floor(Math.random() * sponsorCampaigns.length)];
+    const currentIndex = Number(localStorage.getItem(campaignIndexKey) || 0);
+    const campaign = sponsorCampaigns[currentIndex % sponsorCampaigns.length];
+    localStorage.setItem(campaignIndexKey, String((currentIndex + 1) % sponsorCampaigns.length));
     const media = campaign.html
       ? `<iframe class="bk-interstitial-frame" src="${campaign.html}" title="${campaign.name} sponsored offer" loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"></iframe>`
       : `<img src="${campaign.image}" alt="${campaign.name} sponsored offer" onerror="this.closest('.bk-interstitial-link').classList.add('bk-interstitial-fallback'); this.remove();">`;
