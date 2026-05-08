@@ -755,5 +755,159 @@
     });
   })();
 </script>
+<script>
+  (function () {
+    function installAdminHardening() {
+      const startedAt = Date.now();
+      const maxAdminMinutes = 30;
+      setInterval(() => {
+        if (Date.now() - startedAt > maxAdminMinutes * 60 * 1000) {
+          document.body.innerHTML = '<main class="admin-timeout"><h1>Admin session expired</h1><p>Security ke liye panel lock ho gaya. Page refresh karke dobara login karo.</p></main>';
+        }
+      }, 30000);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          sessionStorage.setItem("bk_admin_hidden_at", String(Date.now()));
+          return;
+        }
+        const hiddenAt = Number(sessionStorage.getItem("bk_admin_hidden_at") || 0);
+        if (hiddenAt && Date.now() - hiddenAt > 10 * 60 * 1000) {
+          location.reload();
+        }
+      });
+    }
+
+    function addRadioStreamTestButton() {
+      const streamInput = document.getElementById("radioStreamUrl");
+      if (!streamInput || document.getElementById("testRadioStreamBtn")) return;
+
+      const button = document.createElement("button");
+      button.id = "testRadioStreamBtn";
+      button.type = "button";
+      button.className = "radio-test-btn";
+      button.textContent = "Test stream";
+      streamInput.insertAdjacentElement("afterend", button);
+
+      button.addEventListener("click", async () => {
+        const streamUrl = streamInput.value.trim();
+        if (!streamUrl) {
+          alert("Pehle Direct stream URL paste karo.");
+          return;
+        }
+        button.textContent = "Testing...";
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/admin/radio/test-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ streamUrl })
+          });
+          const data = await response.json();
+          alert(data.ok ? "Stream working hai." : (data.error || "Stream working nahi hai."));
+        } catch (error) {
+          alert("Stream test fail ho gaya.");
+        } finally {
+          button.textContent = "Test stream";
+          button.disabled = false;
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      installAdminHardening();
+      addRadioStreamTestButton();
+    });
+  })();
+</script>
+<script>
+  (function () {
+    const refreshMs = 20000;
+    let lastInputAt = 0;
+
+    function isEditing() {
+      const active = document.activeElement;
+      const tag = active?.tagName?.toLowerCase();
+      const editingField = tag === "input" || tag === "textarea" || tag === "select" || active?.isContentEditable;
+      return editingField || Date.now() - lastInputAt < 8000;
+    }
+
+    function updateRefreshBadge(seconds) {
+      let badge = document.getElementById("adminAutoRefreshBadge");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.id = "adminAutoRefreshBadge";
+        badge.className = "admin-refresh-badge";
+        document.body.appendChild(badge);
+      }
+      badge.textContent = isEditing() ? "Auto refresh paused" : `Auto refresh ${seconds}s`;
+    }
+
+    document.addEventListener("input", () => {
+      lastInputAt = Date.now();
+    }, true);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      let remaining = Math.round(refreshMs / 1000);
+      updateRefreshBadge(remaining);
+      setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          if (!isEditing()) {
+            location.reload();
+            return;
+          }
+          remaining = Math.round(refreshMs / 1000);
+        }
+        updateRefreshBadge(remaining);
+      }, 1000);
+    });
+  })();
+</script>
+<script>
+  (function () {
+    function createGenderOnlineCard() {
+      if (document.getElementById("adminGenderOnlineCard")) return;
+      const card = document.createElement("section");
+      card.id = "adminGenderOnlineCard";
+      card.className = "admin-gender-online-card";
+      card.innerHTML = `
+        <div class="admin-gender-head">
+          <span>Live users now</span>
+          <strong id="adminGenderUpdated">Updating...</strong>
+        </div>
+        <div class="admin-gender-grid">
+          <div><span>Total</span><strong id="adminOnlineTotal">0</strong></div>
+          <div><span>Male</span><strong id="adminOnlineMale">0</strong></div>
+          <div><span>Female</span><strong id="adminOnlineFemale">0</strong></div>
+          <div><span>Other</span><strong id="adminOnlineOther">0</strong></div>
+        </div>
+      `;
+
+      const main = document.querySelector("main") || document.querySelector(".admin-shell") || document.body;
+      main.insertBefore(card, main.firstChild);
+    }
+
+    async function refreshGenderOnlineCard() {
+      createGenderOnlineCard();
+      try {
+        const response = await fetch("/api/admin/online-gender", { cache: "no-store" });
+        const data = await response.json();
+        document.getElementById("adminOnlineTotal").textContent = data.total ?? 0;
+        document.getElementById("adminOnlineMale").textContent = data.male ?? 0;
+        document.getElementById("adminOnlineFemale").textContent = data.female ?? 0;
+        document.getElementById("adminOnlineOther").textContent = Number(data.other || 0) + Number(data.unknown || 0);
+        document.getElementById("adminGenderUpdated").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      } catch (error) {
+        document.getElementById("adminGenderUpdated").textContent = "Offline";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      refreshGenderOnlineCard();
+      setInterval(refreshGenderOnlineCard, 5000);
+    });
+  })();
+</script>
 </body>
 </html>

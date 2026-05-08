@@ -20,8 +20,73 @@ const {
 const security = require("./security");
 
 const app = express();
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+const allowedOrigins = new Set(
+  [
+    process.env.PUBLIC_URL,
+    process.env.RENDER_EXTERNAL_URL,
+    "https://black-knight.onrender.com",
+    "https://black-knight.onrender.com/",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+  ].filter(Boolean).map((origin) => origin.replace(/\/$/, ""))
+);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") return true;
+    return allowedOrigins.has(origin.replace(/\/$/, ""));
+  } catch (error) {
+    return false;
+  }
+}
+
+app.use((request, response, next) => {
+  const origin = request.get("origin");
+  if (origin && !isAllowedOrigin(origin)) {
+    return response.status(403).json({ error: "Origin not allowed." });
+  }
+
+  const contentLength = Number(request.get("content-length") || 0);
+  if (contentLength > 32 * 1024) {
+    return response.status(413).json({ error: "Request too large." });
+  }
+
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), bluetooth=(), clipboard-read=(), clipboard-write=(self)");
+  response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  response.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+  response.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com https://www.googletagmanager.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data:",
+      "media-src 'self' blob: data: https: http:",
+      "connect-src 'self' wss: ws: https: http:",
+      "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://*.googlesyndication.com"
+    ].join("; ")
+  );
+  next();
+});
 const server = http.createServer(app);
 const io = new Server(server, {
+  allowRequest: (request, callback) => {
+    const origin = request.headers.origin;
+    callback(null, isAllowedOrigin(origin));
+  },
   cors: {
     origin: false,
   },
@@ -636,7 +701,38 @@ io.use((socket, next) => {
   next();
 });
 
+io.use((socket, next) => {
+  const origin = socket.handshake.headers.origin;
+  if (!isAllowedOrigin(origin)) {
+    return next(new Error("Origin not allowed."));
+  }
+
+  const ua = String(socket.handshake.headers["user-agent"] || "");
+  if (ua.length > 500) {
+    return next(new Error("Invalid client."));
+  }
+
+  next();
+});
+
 io.on("connection", (socket) => {
+  socket.use((packet, next) => {
+    const eventName = String(packet?.[0] || "");
+    if (eventName.length > 80) {
+      return next(new Error("Invalid event."));
+    }
+
+    try {
+      const size = Buffer.byteLength(JSON.stringify(packet), "utf8");
+      if (size > 16 * 1024) {
+        return next(new Error("Socket payload too large."));
+      }
+    } catch (error) {
+      return next(new Error("Invalid socket payload."));
+    }
+
+    next();
+  });
   socket.use((packet, next) => {
     const eventName = packet[0];
     const payload = packet[1] || {};
@@ -1021,7 +1117,107 @@ initDb()
     return refreshRadioStations();
   })
   .then(() => {
-    server.listen(PORT, () => {
+app.get("/api/walkie/next-channel", (request, response) => {
+  const currentFrequency = normalizeWalkieFrequency(request.query?.frequency);
+  const stats = getWalkieStats()
+    .filter((item) => !item.locked)
+    .filter((item) => item.frequency !== currentFrequency)
+    .sort((first, second) => {
+      const secondUsers = Number(second.total || second.users || second.count || 0);
+      const firstUsers = Number(first.total || first.users || first.count || 0);
+      return secondUsers - firstUsers;
+    });
+
+  const best = stats.find((item) => Number(item.total || item.users || item.count || 0) > 0);
+  response.json({
+    frequency: best?.frequency || "",
+    channel: best || null
+  });
+});
+
+app.post("/api/admin/radio/test-stream", async (request, response) => {
+  try {
+    const streamUrl = normalizeUrlInput(request.body?.streamUrl || request.body?.url);
+    if (!streamUrl) {
+      return response.status(400).json({ ok: false, error: "Direct stream URL required." });
+    }
+
+    const parsedStreamUrl = new URL(streamUrl);
+    const streamHost = parsedStreamUrl.hostname.toLowerCase();
+    if (!["http:", "https:"].includes(parsedStreamUrl.protocol) ||
+      streamHost === "localhost" ||
+      streamHost === "127.0.0.1" ||
+      streamHost === "::1" ||
+      streamHost.startsWith("10.") ||
+      streamHost.startsWith("192.168.") ||
+      /^172\.(1[6-9]|2\d|3[0-1])\./.test(streamHost) ||
+      streamHost.startsWith("169.254.")) {
+      return response.status(400).json({ ok: false, error: "Private or unsafe stream URL blocked." });
+    }
+
+    if (/(schema\.org|facebook\.com|twitter\.com|instagram\.com|youtube\.com|google\.com|gstatic\.com|w3\.org|radiostation)/i.test(streamUrl)) {
+      return response.status(400).json({ ok: false, error: "This is metadata, not an audio stream." });
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    const testResponse = await fetch(streamUrl, {
+      method: "GET",
+      headers: { range: "bytes=0-2048", "user-agent": "BlackKnightStreamCheck/1.0" },
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    const contentType = String(testResponse.headers.get("content-type") || "").toLowerCase();
+    const playable = testResponse.ok && (
+      contentType.includes("audio") ||
+      contentType.includes("mpegurl") ||
+      contentType.includes("octet-stream") ||
+      /\.(mp3|aac|m3u8|ogg|opus|pls)(?:[?#]|$)/i.test(streamUrl)
+    );
+
+    response.json({
+      ok: playable,
+      status: testResponse.status,
+      contentType,
+      error: playable ? "" : "URL did not respond like a playable audio stream."
+    });
+  } catch (error) {
+    response.status(400).json({ ok: false, error: "Could not test stream URL." });
+  }
+});
+
+app.get("/api/admin/online-gender", (request, response) => {
+  const counts = {
+    total: 0,
+    male: 0,
+    female: 0,
+    other: 0,
+    unknown: 0
+  };
+
+  for (const socket of io.sockets.sockets.values()) {
+    const gender = String(
+      socket.data?.gender ||
+      socket.handshake?.auth?.gender ||
+      socket.handshake?.query?.gender ||
+      ""
+    ).toLowerCase();
+
+    counts.total += 1;
+    if (["male", "m", "boy", "man"].includes(gender)) counts.male += 1;
+    else if (["female", "f", "girl", "woman"].includes(gender)) counts.female += 1;
+    else if (gender) counts.other += 1;
+    else counts.unknown += 1;
+  }
+
+  response.json({
+    ...counts,
+    updatedAt: new Date().toISOString()
+  });
+});
+
+server.listen(PORT, () => {
       console.log(`Black_knight running on http://localhost:${PORT}`);
       console.log(`Storage: ${usingPostgres ? "PostgreSQL" : "JSON fallback"}`);
     });

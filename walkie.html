@@ -62,5 +62,69 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="./safety-client.js"></script>
     <script src="./walkie.js?v=1"></script>
-  </body>
+<script>
+  (function () {
+    function addWalkieNextButton() {
+      if (document.getElementById("walkieNextBtn")) return;
+
+      const button = document.createElement("button");
+      button.id = "walkieNextBtn";
+      button.type = "button";
+      button.className = "walkie-next-btn neon-secondary";
+      button.textContent = "Next channel";
+
+      const pushButton = document.getElementById("walkiePushBtn") ||
+        document.getElementById("pushToTalkBtn") ||
+        document.querySelector("[data-walkie-push]") ||
+        document.querySelector(".push-to-talk") ||
+        document.querySelector(".walkie-talk-btn");
+
+      if (pushButton?.parentElement) {
+        pushButton.parentElement.insertBefore(button, pushButton.nextSibling);
+      } else {
+        document.body.appendChild(button);
+      }
+    }
+
+    async function goToMostActiveWalkieChannel() {
+      const frequencyInput = document.getElementById("walkieFrequency") ||
+        document.getElementById("frequencyInput") ||
+        document.querySelector("input[type='number']");
+      const currentFrequency = frequencyInput?.value || "";
+
+      const response = await fetch(`/api/walkie/next-channel?frequency=${encodeURIComponent(currentFrequency)}`);
+      const data = await response.json();
+
+      if (!data.frequency) {
+        alert("Abhi koi aur active Walkie channel nahi mila.");
+        return;
+      }
+
+      if (frequencyInput) {
+        frequencyInput.value = data.frequency;
+        frequencyInput.dispatchEvent(new Event("input", { bubbles: true }));
+        frequencyInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      const joinButton = document.getElementById("joinWalkieBtn") ||
+        document.getElementById("walkieJoinBtn") ||
+        document.querySelector("[data-walkie-join]") ||
+        document.querySelector(".join-walkie-btn");
+
+      if (joinButton) {
+        joinButton.click();
+      } else if (window.joinWalkieChannel) {
+        window.joinWalkieChannel(data.frequency);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      addWalkieNextButton();
+      document.getElementById("walkieNextBtn")?.addEventListener("click", goToMostActiveWalkieChannel);
+    });
+  })();
+</script>
+<script src="/required-profile.js"></script>
+<script src="/floating-menu.js"></script>
+</body>
 </html>
