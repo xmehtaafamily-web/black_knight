@@ -3807,3 +3807,182 @@ video,
 .video-stage.call-stage.custom-fullscreen #localVideo {
   object-fit: cover !important;
 }
+.night-owl-locked {
+  opacity: 0.48 !important;
+  filter: grayscale(0.8) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  box-shadow: none !important;
+}
+
+.night-owl-unlocked {
+  border-color: rgba(139, 92, 246, 0.82) !important;
+  box-shadow: 0 0 28px rgba(139, 92, 246, 0.34) !important;
+}
+
+.night-owl-lock-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(7, 11, 20, 0.72);
+  color: #dbeafe;
+  font-size: 0.64rem;
+  font-weight: 900;
+  vertical-align: middle;
+}
+/* Private room video: same portrait call style, media starts off */
+.private-room-video-page .private-call-stage.video-stage,
+.private-room-video-page .private-call-stage.call-stage,
+.private-room-video-page .video-stage.call-stage {
+  position: relative !important;
+  width: min(100%, 540px) !important;
+  height: min(72vh, 720px) !important;
+  min-height: 560px !important;
+  margin: 24px auto !important;
+  overflow: hidden !important;
+  border-radius: 30px !important;
+  background: #000 !important;
+  border: 1px solid rgba(0, 229, 255, 0.45) !important;
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(0, 229, 255, 0.14) inset !important;
+}
+
+.private-room-video-page .video-tile.remote {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: 30px !important;
+  background: #000 !important;
+}
+
+.private-room-video-page #remoteVideo,
+.private-room-video-page .video-tile.remote video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  background: #000 !important;
+}
+
+.private-room-video-page .video-tile.local.self-preview {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: 128px !important;
+  height: 180px !important;
+  z-index: 20 !important;
+  overflow: hidden !important;
+  border-radius: 22px !important;
+  background: #000 !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75) !important;
+}
+
+.private-room-video-page #localVideo,
+.private-room-video-page .video-tile.local.self-preview video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: scaleX(-1) !important;
+  background: #000 !important;
+}
+
+.private-room-video-page::before {
+  content: "Private room: camera and mic start off";
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  transform: translateX(-50%);
+  z-index: 5000;
+  max-width: calc(100% - 28px);
+  padding: 8px 13px;
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(7, 11, 20, 0.72);
+  color: #dffcff;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: center;
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .private-room-video-page .private-call-stage.video-stage,
+  .private-room-video-page .private-call-stage.call-stage,
+  .private-room-video-page .video-stage.call-stage {
+    width: 100% !important;
+    height: 64vh !important;
+    min-height: 430px !important;
+    max-height: 640px !important;
+    margin: 18px auto !important;
+    border-radius: 24px !important;
+  }
+
+  .private-room-video-page .video-tile.local.self-preview {
+    width: 112px !important;
+    height: 156px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    border-radius: 18px !important;
+  }
+}
+a[href*="radio.html"],
+button[onclick*="radio.html"],
+[data-mode="radio"],
+[data-feature="radio"],
+.radio-home-card,
+.live-radio-card,
+.radio-launch,
+.radio-cta {
+  display: none !important;
+}
+.frequency-slider-wrap {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  border-radius: 18px;
+  background: rgba(7, 11, 20, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.frequency-slider-head,
+.frequency-slider-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.frequency-slider-head span {
+  color: #a8b5ca;
+  font-weight: 800;
+}
+
+.frequency-slider-head strong {
+  color: #00f0ff;
+  font-size: 1.1rem;
+}
+
+.frequency-slider {
+  width: 100%;
+  margin: 16px 0 8px;
+  accent-color: #00f0ff;
+}
+
+.frequency-slider-scale {
+  color: #7f8ca3;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
