@@ -131,6 +131,27 @@ function normalizeUrlInput(value) {
 }
 
 const radioLockedFrequencies = new Map();
+radioLockedFrequencies.set("92.70", {
+  frequency: "92.70",
+  name: "Big FM",
+  pageUrl: "https://onlineradiofm.in/stations/big",
+  streamUrl: "https://stream.zeno.fm/dbstwo3dvhhtv",
+  locked: true
+});
+radioLockedFrequencies.set("93.50", {
+  frequency: "93.50",
+  name: "Red FM",
+  pageUrl: "https://onlineradiofm.com.in/red-fm",
+  streamUrl: "https://stream.zeno.fm/9phrkb1e3v8uv",
+  locked: true
+});
+radioLockedFrequencies.set("98.30", {
+  frequency: "98.30",
+  name: "Radio Mirchi",
+  pageUrl: "https://onlineradiofm.com.in/radio-mirchi",
+  streamUrl: "",
+  locked: true
+});
 
 async function refreshRadioStations() {
   const rows = await listRadioStations();

@@ -909,5 +909,28 @@
     });
   })();
 </script>
+<script>
+  (function () {
+    document.addEventListener("DOMContentLoaded", () => {
+      const rows = Array.from(document.querySelectorAll("tr, .radio-row, .radio-station-row, li, .station-row"));
+      const bigFmRow = rows.find((row) => /92\.?70|big fm/i.test(row.textContent || ""));
+      const editButton = bigFmRow?.querySelector("button");
+      if (!bigFmRow || !editButton) return;
+      editButton.addEventListener("click", () => {
+        setTimeout(() => {
+          const frequency = document.querySelector("#radioFrequency, [name='frequency']");
+          const name = document.querySelector("#radioStationName, [name='name'], [name='stationName']");
+          const pageUrl = document.querySelector("#radioPageUrl, [name='pageUrl']");
+          const streamUrl = document.querySelector("#radioStreamUrl, [name='streamUrl']");
+          if (frequency && String(frequency.value || "").startsWith("92.7")) {
+            if (name && !name.value) name.value = "Big FM";
+            if (pageUrl && !pageUrl.value) pageUrl.value = "https://onlineradiofm.in/stations/big";
+            if (streamUrl && !streamUrl.value) streamUrl.value = "https://stream.zeno.fm/dbstwo3dvhhtv";
+          }
+        }, 100);
+      });
+    });
+  })();
+</script>
 </body>
 </html>
