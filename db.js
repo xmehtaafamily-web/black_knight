@@ -262,7 +262,7 @@ async function listHourlyAnalytics(limit = 48) {
 }
 
 const defaultRadioStations = [
-  { frequency: "98.30", name: "Radio Mirchi", pageUrl: "https://onlineradiofm.in/stations/mirchi", streamUrl: "", locked: true },
+  { frequency: "98.30", name: "Radio Mirchi", pageUrl: "https://onlineradiofm.com.in/radio-mirchi", streamUrl: "", locked: true },
   { frequency: "93.50", name: "Red FM", pageUrl: "https://onlineradiofm.com.in/red-fm", streamUrl: "", locked: true },
   { frequency: "92.70", name: "Big FM", pageUrl: "https://onlineradiofm.in/stations/big", streamUrl: "", locked: true },
   { frequency: "104.80", name: "Ishq FM", pageUrl: "https://onlineradiofm.in/stations/ishq", streamUrl: "", locked: true },
@@ -290,6 +290,11 @@ async function listRadioStations() {
   if (!existing.rows.length) {
     for (const station of defaultRadioStations) await saveRadioStation(station);
   }
+
+  await pool.query(
+    "UPDATE radio_stations SET page_url = $1, updated_at = $2 WHERE frequency = $3",
+    ["https://onlineradiofm.com.in/radio-mirchi", new Date().toISOString(), "98.30"],
+  );
 
   const result = await pool.query("SELECT * FROM radio_stations ORDER BY frequency::numeric ASC");
   return result.rows.map((row) => ({

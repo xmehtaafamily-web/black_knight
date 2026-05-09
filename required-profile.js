@@ -11,6 +11,11 @@
   }
 
   function readSelectedGenderFromPage() {
+    const checkedInput = document.querySelector("input[name='gender']:checked, input[name='userGender']:checked, input[name*='gender' i]:checked");
+    const checkedValue = String(checkedInput?.value || "").toLowerCase();
+    if (checkedValue.includes("female")) return "female";
+    if (checkedValue.includes("male")) return "male";
+
     const selected = Array.from(document.querySelectorAll(".selected, .active, [aria-pressed='true'], [data-selected='true']"))
       .find((element) => {
         const text = String(element.textContent || element.getAttribute("aria-label") || "").toLowerCase();
@@ -23,11 +28,25 @@
   }
 
   function readSelectedNameFromPage() {
-    const input = document.querySelector("input[name*='name' i], input[id*='name' i], input[placeholder*='name' i]");
+    const input = document.querySelector("#displayName, input[name*='name' i], input[id*='name' i], input[placeholder*='name' i]");
     return String(input?.value || "").trim();
   }
 
+  function saveProfileFromPage() {
+    const name = readSelectedNameFromPage();
+    const gender = readSelectedGenderFromPage();
+    if (name) {
+      for (const key of nameKeys) localStorage.setItem(key, name);
+      sessionStorage.setItem("bk_display_name", name);
+    }
+    if (gender) {
+      for (const key of genderKeys) localStorage.setItem(key, gender);
+      sessionStorage.setItem("bk_gender", gender);
+    }
+  }
+
   function hasRequiredProfile() {
+    saveProfileFromPage();
     const name = readAny(nameKeys) || readSelectedNameFromPage();
     const gender = readAny(genderKeys) || readSelectedGenderFromPage();
     if (name) localStorage.setItem("bk_display_name", name);
@@ -59,9 +78,12 @@
   }
 
   document.addEventListener("click", (event) => {
+    saveProfileFromPage();
     const clickedText = String(event.target.closest("button, [role='button'], label")?.textContent || "").toLowerCase();
     if (/\bmale\b/.test(clickedText) || /\bfemale\b/.test(clickedText)) {
-      localStorage.setItem("bk_gender", clickedText.includes("female") ? "female" : "male");
+      const gender = clickedText.includes("female") ? "female" : "male";
+      for (const key of genderKeys) localStorage.setItem(key, gender);
+      sessionStorage.setItem("bk_gender", gender);
     }
 
     const target = event.target.closest("a, button");
@@ -71,6 +93,9 @@
     event.stopImmediatePropagation();
     showProfileRequired();
   }, true);
+
+  document.addEventListener("input", saveProfileFromPage, true);
+  document.addEventListener("change", saveProfileFromPage, true);
 
   window.BlackKnightRequiredProfile = {
     hasRequiredProfile,

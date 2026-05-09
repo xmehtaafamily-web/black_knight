@@ -217,6 +217,52 @@ app.use((request, response, next) => {
 });
 
 app.use(express.json({ limit: "16kb" }));
+
+app.get("/sitemap.xml", (request, response) => {
+  const baseUrl = "https://black-knight.onrender.com";
+  const urls = [
+    "/",
+    "/chat.html",
+    "/video.html",
+    "/walkie.html",
+    "/rooms.html",
+    "/feedback.html",
+    "/about.html",
+    "/privacy.html",
+    "/terms.html",
+    "/contact.html",
+    "/best-omegle-alternative.html",
+    "/safe-random-video-chat.html",
+    "/anonymous-chat-for-genz.html",
+  ];
+
+  response.type("application/xml");
+  response.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (url) => `  <url>
+    <loc>${baseUrl}${url}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>${url === "/" ? "1.0" : "0.7"}</priority>
+  </url>`,
+  )
+  .join("\n")}
+</urlset>
+`);
+});
+
+app.get("/robots.txt", (request, response) => {
+  response.type("text/plain");
+  response.send(`User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin-feedback.html
+
+Sitemap: https://black-knight.onrender.com/sitemap.xml
+`);
+});
+
 app.use(express.static(path.join(__dirname)));
 
 function getCookie(request, name) {
@@ -1234,6 +1280,37 @@ app.get("/api/admin/online-gender", (request, response) => {
 
   response.json({
     ...counts,
+    updatedAt: new Date().toISOString()
+  });
+});
+
+app.get("/api/live-stats", (request, response) => {
+  const stats = {
+    online: 0,
+    chat: 0,
+    video: 0,
+    live: 0,
+    countries: 0
+  };
+  const countries = new Set();
+
+  for (const socket of io.sockets.sockets.values()) {
+    stats.online += 1;
+    const mode = String(socket.data?.mode || socket.handshake?.auth?.mode || socket.handshake?.query?.mode || "").toLowerCase();
+    const page = String(socket.handshake?.headers?.referer || "").toLowerCase();
+
+    if (mode.includes("video") || page.includes("video.html")) stats.video += 1;
+    else if (mode.includes("chat") || page.includes("chat.html")) stats.chat += 1;
+
+    if (socket.data?.partnerId || socket.data?.roomId || socket.rooms?.size > 1) stats.live += 1;
+
+    const country = String(socket.data?.country || socket.handshake?.auth?.country || socket.handshake?.query?.country || "").trim().toUpperCase();
+    if (country && country.length <= 3) countries.add(country);
+  }
+
+  stats.countries = countries.size;
+  response.json({
+    ...stats,
     updatedAt: new Date().toISOString()
   });
 });
