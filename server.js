@@ -1,5 +1,6 @@
 const express = require("express");
 const crypto = require("crypto");
+const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
@@ -97,6 +98,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "blackknight123";
 const TURN_URL = process.env.TURN_URL || "";
 const TURN_USERNAME = process.env.TURN_USERNAME || "";
 const TURN_PASSWORD = process.env.TURN_PASSWORD || "";
+const VISITS_FILE = path.join(__dirname, "visits.json");
 
 const adminSessions = new Set();
 const users = new Map();
@@ -107,6 +109,14 @@ const roomMessages = new Map();
 const confessions = [];
 const walkieChannels = new Map();
 const walkieProfiles = new Map();
+let visitRows = [];
+
+try {
+  visitRows = JSON.parse(fs.readFileSync(VISITS_FILE, "utf8"));
+  if (!Array.isArray(visitRows)) visitRows = [];
+} catch (error) {
+  visitRows = [];
+}
 
 const publicRooms = [
   { id: "3am-thoughts", name: "3AM Thoughts", voiceReady: false },
@@ -128,6 +138,69 @@ function normalizeUrlInput(value) {
   const text = String(value || "").trim();
   const match = text.match(/https?:\/\/[^\s"'<>]+/i);
   return match ? match[0] : "";
+}
+
+function sanitizeVisitPath(value) {
+  const pathValue = String(value || "/").trim().slice(0, 160);
+  if (!pathValue.startsWith("/")) return "/";
+  return pathValue.replace(/[<>"']/g, "");
+}
+
+function detectDevice(userAgent = "") {
+  const ua = String(userAgent).toLowerCase();
+  if (/tablet|ipad/.test(ua)) return "tablet";
+  if (/mobile|android|iphone|ipod/.test(ua)) return "mobile";
+  return "desktop";
+}
+
+function detectCountry(request) {
+  const headerCountry =
+    request.get("cf-ipcountry") ||
+    request.get("x-vercel-ip-country") ||
+    request.get("x-country-code") ||
+    "";
+  if (/^[A-Z]{2}$/i.test(headerCountry)) return headerCountry.toUpperCase();
+
+  const language = String(request.get("accept-language") || "");
+  const countryMatch = language.match(/-[A-Z]{2}\b/i);
+  return countryMatch ? countryMatch[0].slice(1).toUpperCase() : "Unknown";
+}
+
+function saveVisits() {
+  try {
+    fs.writeFileSync(VISITS_FILE, JSON.stringify(visitRows.slice(-10000), null, 2));
+  } catch (error) {
+    // Render's filesystem can be temporary; analytics should not break the app.
+  }
+}
+
+function summarizeVisits() {
+  const now = Date.now();
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const last24h = visitRows.filter((visit) => now - new Date(visit.createdAt).getTime() <= 24 * 60 * 60 * 1000);
+  const today = visitRows.filter((visit) => String(visit.createdAt || "").startsWith(todayKey));
+  const uniqueTotal = new Set(visitRows.map((visit) => visit.visitorId).filter(Boolean)).size;
+  const uniqueToday = new Set(today.map((visit) => visit.visitorId).filter(Boolean)).size;
+
+  const countBy = (rows, key) =>
+    rows.reduce((acc, row) => {
+      const value = row[key] || "Unknown";
+      acc[value] = (acc[value] || 0) + 1;
+      return acc;
+    }, {});
+
+  return {
+    totalVisits: visitRows.length,
+    todayVisits: today.length,
+    last24hVisits: last24h.length,
+    uniqueTotal,
+    uniqueToday,
+    pages: countBy(last24h, "page"),
+    devices: countBy(last24h, "device"),
+    countries: countBy(last24h, "country"),
+    recent: visitRows.slice(-25).reverse(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 const radioLockedFrequencies = new Map();
@@ -511,6 +584,34 @@ app.get("/api/guest-session", (request, response) => {
     expiresAt: request.guestSession.expiresAt,
     privacy: "Anonymous guest only. No login, email, password, or video stream is stored.",
   });
+});
+
+app.post("/api/visit", (request, response) => {
+  const session = request.guestSession;
+  const visitorId = crypto
+    .createHash("sha256")
+    .update(String(request.body?.visitorId || session?.id || "anonymous"))
+    .digest("hex")
+    .slice(0, 24);
+
+  visitRows.push({
+    id: crypto.randomUUID(),
+    visitorId,
+    guestSessionId: session?.id || "",
+    page: sanitizeVisitPath(request.body?.page),
+    referrer: String(request.body?.referrer || "").slice(0, 180).replace(/[<>"']/g, ""),
+    device: detectDevice(request.get("user-agent")),
+    country: detectCountry(request),
+    createdAt: new Date().toISOString(),
+  });
+
+  if (visitRows.length > 10000) visitRows = visitRows.slice(-10000);
+  saveVisits();
+  response.json({ ok: true });
+});
+
+app.get("/api/admin/visit-stats", requireAdmin, (request, response) => {
+  response.json(summarizeVisits());
 });
 
 app.get("/api/reports", requireAdmin, async (request, response) => {

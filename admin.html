@@ -868,6 +868,57 @@
 </script>
 <script>
   (function () {
+    function renderVisitStats(data) {
+      let card = document.getElementById("adminVisitStatsCard");
+      if (!card) {
+        card = document.createElement("section");
+        card.id = "adminVisitStatsCard";
+        card.className = "admin-card admin-visit-card";
+        const target = document.querySelector("#statsGrid") || document.querySelector("main") || document.body;
+        target.insertAdjacentElement("afterend", card);
+      }
+
+      const topPages = Object.entries(data.pages || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([page, count]) => `<span>${page}</span><strong>${count}</strong>`)
+        .join("");
+      const devices = Object.entries(data.devices || {})
+        .map(([device, count]) => `<span>${device}</span><strong>${count}</strong>`)
+        .join("");
+      const countries = Object.entries(data.countries || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([country, count]) => `<span>${country}</span><strong>${count}</strong>`)
+        .join("");
+
+      card.innerHTML = `
+        <div class="card-header">
+          <h2>Visitor Analytics</h2>
+          <span class="row-detail">Updated ${new Date(data.updatedAt).toLocaleTimeString()}</span>
+        </div>
+        <div class="visit-stats-grid">
+          <article><span>Total opens</span><strong>${data.totalVisits || 0}</strong></article>
+          <article><span>Today opens</span><strong>${data.todayVisits || 0}</strong></article>
+          <article><span>Last 24h</span><strong>${data.last24hVisits || 0}</strong></article>
+          <article><span>Unique today</span><strong>${data.uniqueToday || 0}</strong></article>
+        </div>
+        <div class="visit-breakdown">
+          <div><h3>Top pages</h3>${topPages || "<p>No visits yet.</p>"}</div>
+          <div><h3>Devices</h3>${devices || "<p>No visits yet.</p>"}</div>
+          <div><h3>Countries</h3>${countries || "<p>No visits yet.</p>"}</div>
+        </div>
+      `;
+    }
+
+    async function refreshVisitStats() {
+      try {
+        const response = await fetch("/api/admin/visit-stats", { cache: "no-store" });
+        if (!response.ok) return;
+        renderVisitStats(await response.json());
+      } catch (error) {}
+    }
+
     function createGenderOnlineCard() {
       if (document.getElementById("adminGenderOnlineCard")) return;
       const card = document.createElement("section");
@@ -907,7 +958,9 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       refreshGenderOnlineCard();
+      refreshVisitStats();
       setInterval(refreshGenderOnlineCard, 5000);
+      setInterval(refreshVisitStats, 10000);
     });
   })();
 </script>
