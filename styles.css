@@ -4290,3 +4290,13 @@ button[onclick*="radio.html"],
   color: #e5eefc;
   font-weight: 900;
 }
+body:has(.chat-panel.chat-mode) [id*="blur" i],
+body:has(.chat-panel.chat-mode) [class*="blur" i],
+body:has(.chat-panel.chat-mode) [id*="camera" i],
+body:has(.chat-panel.chat-mode) [class*="camera" i],
+body:has(.chat-panel.chat-mode) [id*="mic" i],
+body:has(.chat-panel.chat-mode) [class*="mic" i],
+body:has(.chat-panel.chat-mode) [id*="end" i],
+body:has(.chat-panel.chat-mode) [class*="end" i] {
+  display: none !important;
+}
