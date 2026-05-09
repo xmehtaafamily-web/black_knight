@@ -10,8 +10,29 @@
     return "";
   }
 
+  function readSelectedGenderFromPage() {
+    const selected = Array.from(document.querySelectorAll(".selected, .active, [aria-pressed='true'], [data-selected='true']"))
+      .find((element) => {
+        const text = String(element.textContent || element.getAttribute("aria-label") || "").toLowerCase();
+        return /\b(male|female)\b/.test(text);
+      });
+    const text = String(selected?.textContent || selected?.getAttribute?.("aria-label") || "").toLowerCase();
+    if (text.includes("female")) return "female";
+    if (text.includes("male")) return "male";
+    return "";
+  }
+
+  function readSelectedNameFromPage() {
+    const input = document.querySelector("input[name*='name' i], input[id*='name' i], input[placeholder*='name' i]");
+    return String(input?.value || "").trim();
+  }
+
   function hasRequiredProfile() {
-    return Boolean(readAny(nameKeys) && readAny(genderKeys));
+    const name = readAny(nameKeys) || readSelectedNameFromPage();
+    const gender = readAny(genderKeys) || readSelectedGenderFromPage();
+    if (name) localStorage.setItem("bk_display_name", name);
+    if (gender) localStorage.setItem("bk_gender", gender);
+    return Boolean(name && gender);
   }
 
   function showProfileRequired() {
@@ -38,6 +59,11 @@
   }
 
   document.addEventListener("click", (event) => {
+    const clickedText = String(event.target.closest("button, [role='button'], label")?.textContent || "").toLowerCase();
+    if (/\bmale\b/.test(clickedText) || /\bfemale\b/.test(clickedText)) {
+      localStorage.setItem("bk_gender", clickedText.includes("female") ? "female" : "male");
+    }
+
     const target = event.target.closest("a, button");
     if (!target || !isStartAction(target)) return;
     if (hasRequiredProfile()) return;
