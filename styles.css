@@ -4300,3 +4300,50 @@ body:has(.chat-panel.chat-mode) [id*="end" i],
 body:has(.chat-panel.chat-mode) [class*="end" i] {
   display: none !important;
 }
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  display: block;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 240, 255, 0.55);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.28);
+}
+
+.brand:has(.brand-logo) .brand-fallback {
+  display: none;
+}
+
+.hero-logo {
+  width: min(260px, 72vw);
+  display: block;
+  margin: 0 auto 18px;
+  border-radius: 28px;
+  box-shadow:
+    0 0 34px rgba(0, 240, 255, 0.28),
+    0 0 90px rgba(139, 92, 246, 0.18);
+}
+
+.admin-logo {
+  width: 72px;
+  height: 72px;
+  display: block;
+  object-fit: cover;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 28px rgba(0, 240, 255, 0.25);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 640px) {
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .hero-logo {
+    width: min(220px, 78vw);
+    margin-bottom: 14px;
+  }
+}
