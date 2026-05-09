@@ -1,0 +1,16 @@
+{
+  "name": "black-knight-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Black_knight preference-based random chat MVP with Socket.io.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.3",
+    "pg": "^8.11.5",
+    "socket.io": "^4.7.5"
+  }
+}

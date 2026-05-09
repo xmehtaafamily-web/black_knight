@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback Admin | Black_knight</title>
+  <link rel="stylesheet" href="/styles.css?v=admin-feedback-1">
+</head>
+<body class="admin-feedback-page">
+  <main class="admin-feedback-shell">
+    <header class="admin-feedback-header">
+      <a href="/admin.html">Admin</a>
+      <div>
+        <p>Black_knight</p>
+        <h1>User Feedback</h1>
+      </div>
+      <button id="refreshFeedbackBtn" type="button">Refresh</button>
+    </header>
+
+    <section id="feedbackList" class="admin-feedback-list">
+      <p class="admin-feedback-empty">Loading feedback...</p>
+    </section>
+  </main>
+
+  <script>
+    async function loadFeedback() {
+      const list = document.getElementById("feedbackList");
+      list.innerHTML = '<p class="admin-feedback-empty">Loading feedback...</p>';
+      try {
+        const response = await fetch("/api/admin/feedback", { cache: "no-store" });
+        const items = await response.json();
+        if (!Array.isArray(items) || !items.length) {
+          list.innerHTML = '<p class="admin-feedback-empty">No feedback yet.</p>';
+          return;
+        }
+        list.innerHTML = items.map((item) => `
+          <article class="admin-feedback-item">
+            <div>
+              <span>${escapeHtml(item.topic || "General")}</span>
+              <time>${new Date(item.createdAt).toLocaleString()}</time>
+            </div>
+            <p>${escapeHtml(item.message || "")}</p>
+            ${item.contact ? `<strong>Contact: ${escapeHtml(item.contact)}</strong>` : ""}
+          </article>
+        `).join("");
+      } catch (error) {
+        list.innerHTML = '<p class="admin-feedback-empty">Could not load feedback.</p>';
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("refreshFeedbackBtn").addEventListener("click", loadFeedback);
+    loadFeedback();
+    setInterval(loadFeedback, 15000);
+  </script>
+</body>
+</html>

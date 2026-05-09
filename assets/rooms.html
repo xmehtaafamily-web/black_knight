@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Midnight Rooms - Black_knight</title>
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
+  </head>
+  <body>
+    <main class="app-shell start-shell feature-shell">
+      <section class="panel intro-panel">
+        <nav class="topbar">
+          <div class="brand"><span class="brand-mark">BK</span><span>Midnight Rooms</span></div>
+          <a class="secondary-link compact-link" href="./index.html">Home</a>
+        </nav>
+        <div class="intro-copy">
+          <p class="eyebrow">Public Rooms</p>
+          <h1>Join a signal.</h1>
+          <p>Public themed chat rooms with live activity. Voice room structure is ready for future rollout.</p>
+        </div>
+        <section id="roomsGrid" class="rooms-grid"></section>
+        <section id="roomChat" class="feature-chat hidden">
+          <div class="card-header"><h2 id="activeRoomName">Room</h2><button id="leaveRoomBtn" class="row-action" type="button">Leave</button></div>
+          <div id="roomMessages" class="messages"></div>
+          <form id="roomForm" class="chat-form">
+            <input id="roomInput" type="text" maxlength="180" placeholder="Send a room message..." />
+            <button type="submit">Send</button>
+          </form>
+        </section>
+      </section>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./rooms.js"></script>
+  </body>
+</html>

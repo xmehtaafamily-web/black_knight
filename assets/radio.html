@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Live Radio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=radio-1" />
+  </head>
+  <body>
+    <main class="app-shell start-shell radio-shell">
+      <section class="panel intro-panel radio-panel">
+        <nav class="topbar">
+          <a class="secondary-link" href="/">Back</a>
+          <div class="brand">
+            <span class="brand-mark">BK</span>
+            <span>Live Radio</span>
+          </div>
+          <span id="radioStatus" class="status-pill">Ready</span>
+        </nav>
+
+        <div class="intro-copy">
+          <p class="eyebrow">Internet radio player</p>
+          <h1>India Radio</h1>
+          <p>Frequency cards are labels. Playback needs an official internet stream URL.</p>
+        </div>
+
+        <div id="radioGrid" class="radio-grid" aria-label="Radio stations"></div>
+
+        <form id="streamForm" class="frequency-form">
+          <label>
+            Official stream URL
+            <input id="streamUrlInput" type="url" placeholder="https://example.com/live.mp3" />
+          </label>
+          <button type="submit">Play URL</button>
+        </form>
+
+        <div class="radio-player">
+          <div>
+            <p class="eyebrow">Now playing</p>
+            <h2 id="nowPlaying">No station selected</h2>
+          </div>
+          <audio id="radioAudio" controls preload="none"></audio>
+        </div>
+      </section>
+    </main>
+
+    <script src="./radio.js?v=1"></script>
+  </body>
+</html>

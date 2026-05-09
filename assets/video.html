@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Video Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6577633980455130"
+     crossorigin="anonymous"></script>
+    <link rel="icon" type="image/png" href="./assets/black-knight-logo.png" />
+    <meta property="og:image" content="https://black-knight.onrender.com/assets/black-knight-logo.png" />
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
+<link rel="stylesheet" href="./styles.css?v=dark-safety-4" />
+<script src="/private-room-video.js?v=private-video-1"></script>
+<title>Black Knight Random Video Chat | Anonymous Stranger Calls</title>
+<meta name="description" content="Start anonymous random video calls on Black Knight and meet strangers instantly in futuristic live video chat rooms.">
+<meta name="keywords" content="black knight video chat, random video call, anonymous video chat, stranger video chat">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#020617">
+</head>
+  <body>
+    <main class="app-shell in-room">
+      <section id="chatPanel" class="panel chat-panel video-mode" aria-label="Video chat room">
+        <div class="match-header">
+          <div>
+            <p class="eyebrow">Video chat room</p>
+            <h2 id="matchName">Waiting room</h2>
+            <p id="reconnectCode" class="room-code"></p>
+            <button id="copyCodeBtn" class="copy-code-btn" type="button">Copy reconnect code</button>
+            <div id="profileChips" class="profile-chips"></div>
+          </div>
+          <div class="match-meta">
+            <span id="modeStatus" class="live-dot">Video Chat mode</span>
+            <span id="matchStatus" class="live-dot">Waiting</span>
+          </div>
+        </div>
+
+        <div class="video-stage call-stage">
+          <div class="video-tile remote">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <span class="camera-icon">.</span>
+            <strong id="remoteLabel">Match</strong>
+            <span id="privacyWatermark" class="privacy-watermark">Black_knight</span>
+          </div>
+          <div class="video-tile local self-preview">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <span class="camera-icon">.</span>
+            <strong>You</strong>
+          </div>
+        </div>
+
+        <div class="call-controls" aria-label="Video controls">
+          <button id="cameraBtn" type="button">Camera off</button>
+          <button id="micBtn" type="button">Mic off</button>
+          <button id="endCallBtn" type="button">End call</button>
+          <button id="translateBtn" type="button">Translate</button>
+          <button id="skipBtn" type="button">Next</button>
+          <button id="blockBtn" type="button">Block</button>
+          <button id="reportBtn" type="button">Report</button>
+        </div>
+
+        <div id="nextAdSlot" class="ad-slot next-ad-slot" data-ad-slot="video"></div>
+
+        <div class="icebreaker-card">
+          <span>AI icebreaker</span>
+          <strong>Ask them: What changed your life forever?</strong>
+        </div>
+
+        <div id="messages" class="messages" aria-live="polite">
+          <div class="empty-state"><span class="radar-loader"></span><strong>Waiting for a matching user...</strong></div>
+        </div>
+        <div id="typingIndicator" class="typing-indicator" aria-live="polite"></div>
+
+        <form id="chatForm" class="chat-form">
+          <input id="messageInput" type="text" maxlength="180" placeholder="Type a message..." />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </main>
+
+    <template id="messageTemplate">
+      <article class="message">
+        <span></span>
+        <p></p>
+      </article>
+    </template>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./ads.js"></script>
+    <script src="./protection.js"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./room.js?v=feature-pack-1" data-room-mode="video"></script>
+    <script src="./safety-client.js"></script>
+<script src="/required-profile.js?v=profile-fix-2"></script>
+<script src="/floating-menu.js"></script>
+<script src="/interstitial.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const remoteVideo = document.getElementById("remoteVideo");
+    const localVideo = document.getElementById("localVideo");
+    [remoteVideo, localVideo].forEach((video) => {
+      if (!video) return;
+      video.setAttribute("autoplay", "");
+      video.setAttribute("playsinline", "");
+      video.play?.().catch?.(() => {});
+    });
+    if (localVideo) localVideo.muted = true;
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const videoStage = document.querySelector(".video-stage.call-stage");
+    let lastTap = 0;
+
+    function toggleCustomFullscreen(event) {
+      event.preventDefault();
+      videoStage?.classList.toggle("custom-fullscreen");
+    }
+
+    videoStage?.addEventListener("dblclick", toggleCustomFullscreen);
+    videoStage?.addEventListener("touchend", (event) => {
+      const now = Date.now();
+      if (now - lastTap < 320) {
+        toggleCustomFullscreen(event);
+        lastTap = 0;
+        return;
+      }
+      lastTap = now;
+    }, { passive: false });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback | Black_knight</title>
+  <meta name="description" content="Send feedback to Black_knight RandomChat.">
+  <link rel="stylesheet" href="/styles.css?v=feedback-1">
+</head>
+<body class="feedback-page">
+  <main class="feedback-shell">
+    <a class="legal-back" href="/">Black_knight</a>
+    <section class="feedback-card">
+      <div class="feedback-orb">BK</div>
+      <p class="feedback-kicker">Help improve the unknown</p>
+      <h1>Tell us what feels off</h1>
+      <p class="feedback-copy">Share bugs, missing features, safety issues, radio problems, video call issues, or any idea that can make Black_knight better.</p>
+
+      <div id="feedbackThanks" class="feedback-thanks" hidden>
+        <strong>Thank you for your feedback.</strong>
+        <span>Your message has been sent to the Black_knight team.</span>
+        <a href="/">Back to home</a>
+      </div>
+
+      <form id="feedbackForm" class="feedback-form">
+        <label>
+          Topic
+          <select name="topic" required>
+            <option value="Bug">Bug</option>
+            <option value="Video chat">Video chat</option>
+            <option value="Walkie talkie">Walkie talkie</option>
+            <option value="Radio">Radio</option>
+            <option value="Safety">Safety</option>
+            <option value="Design">Design</option>
+            <option value="Idea">Idea</option>
+          </select>
+        </label>
+
+        <label>
+          Message
+          <textarea name="message" rows="6" maxlength="1200" placeholder="Kya issue aa raha hai? Kya improve karna chahiye?" required></textarea>
+        </label>
+
+        <label>
+          Contact optional
+          <input name="contact" maxlength="120" placeholder="Email/Instagram optional">
+        </label>
+
+        <button type="submit">Send feedback</button>
+        <p id="feedbackStatus" class="feedback-status" role="status"></p>
+      </form>
+    </section>
+  </main>
+  <script>
+    document.getElementById("feedbackForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const status = document.getElementById("feedbackStatus");
+      const payload = Object.fromEntries(new FormData(form).entries());
+      status.textContent = "Sending...";
+      try {
+        const response = await fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Feedback failed");
+        status.textContent = "Feedback sent. Thank you.";
+        document.getElementById("feedbackThanks").hidden = false;
+        form.hidden = true;
+        form.reset();
+      } catch (error) {
+        status.textContent = "Feedback send nahi hua. Thodi der baad try karo.";
+      }
+    });
+  </script>
+</body>
+</html>

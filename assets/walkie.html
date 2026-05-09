@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Walkie Talkie</title>
+    <link rel="icon" type="image/png" href="./assets/black-knight-logo.png" />
+    <meta property="og:image" content="https://black-knight.onrender.com/assets/black-knight-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=walkie-1" />
+  </head>
+  <body>
+    <main class="app-shell start-shell walkie-shell">
+      <section class="panel intro-panel walkie-panel">
+        <nav class="topbar">
+          <a class="secondary-link" href="/">Back</a>
+          <div class="brand">
+            <img class="brand-logo" src="./assets/black-knight-logo.png" alt="Black Knight logo" />
+            <span class="brand-mark brand-fallback">BK</span>
+            <span>Walkie Talkie</span>
+          </div>
+          <span id="walkieStatus" class="status-pill">Choose frequency</span>
+        </nav>
+
+        <div class="intro-copy">
+          <p class="eyebrow">Frequency voice + chat</p>
+          <h1>Hold To Talk</h1>
+          <p>Join one frequency channel. Maximum 50 anonymous users per frequency.</p>
+        </div>
+
+        <form id="frequencyForm" class="frequency-form">
+          <label>
+            Set frequency
+            <input id="frequencyInput" type="number" min="30" max="100" step="0.01" value="50.48" placeholder="30.00 - 100.00" />
+          </label>
+          <button type="submit">Join frequency</button>
+        </form>
+
+        <div id="frequencyGrid" class="frequency-grid" aria-label="Active frequencies"></div>
+
+        <div class="walkie-console">
+          <div id="radioLockPanel" class="radio-lock-panel"></div>
+          <audio id="walkieRadioAudio" preload="none" playsinline controls></audio>
+          <div id="voiceStatus" class="voice-status" aria-live="polite"></div>
+
+          <div id="walkieMessages" class="messages">
+            <div class="empty-state">Select a frequency to enter the channel.</div>
+          </div>
+
+          <button id="talkBtn" class="talk-btn" type="button" disabled>Hold to talk</button>
+
+          <form id="walkieForm" class="chat-form">
+            <input id="walkieInput" type="text" maxlength="160" placeholder="Type channel message..." />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./safety-client.js"></script>
+    <script src="./walkie.js?v=1"></script>
+<script>
+  (function () {
+    function addWalkieNextButton() {
+      if (document.getElementById("walkieNextBtn")) return;
+
+      const button = document.createElement("button");
+      button.id = "walkieNextBtn";
+      button.type = "button";
+      button.className = "walkie-next-btn neon-secondary";
+      button.textContent = "Next channel";
+
+      const pushButton = document.getElementById("walkiePushBtn") ||
+        document.getElementById("pushToTalkBtn") ||
+        document.querySelector("[data-walkie-push]") ||
+        document.querySelector(".push-to-talk") ||
+        document.querySelector(".walkie-talk-btn");
+
+      if (pushButton?.parentElement) {
+        pushButton.parentElement.insertBefore(button, pushButton.nextSibling);
+      } else {
+        document.body.appendChild(button);
+      }
+    }
+
+    async function goToMostActiveWalkieChannel() {
+      const frequencyInput = document.getElementById("walkieFrequency") ||
+        document.getElementById("frequencyInput") ||
+        document.querySelector("input[type='number']");
+      const currentFrequency = frequencyInput?.value || "";
+
+      const response = await fetch(`/api/walkie/next-channel?frequency=${encodeURIComponent(currentFrequency)}`);
+      const data = await response.json();
+
+      if (!data.frequency) {
+        alert("Abhi koi aur active Walkie channel nahi mila.");
+        return;
+      }
+
+      if (frequencyInput) {
+        frequencyInput.value = data.frequency;
+        frequencyInput.dispatchEvent(new Event("input", { bubbles: true }));
+        frequencyInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      const joinButton = document.getElementById("joinWalkieBtn") ||
+        document.getElementById("walkieJoinBtn") ||
+        document.querySelector("[data-walkie-join]") ||
+        document.querySelector(".join-walkie-btn");
+
+      if (joinButton) {
+        joinButton.click();
+      } else if (window.joinWalkieChannel) {
+        window.joinWalkieChannel(data.frequency);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      addWalkieNextButton();
+      document.getElementById("walkieNextBtn")?.addEventListener("click", goToMostActiveWalkieChannel);
+    });
+  })();
+</script>
+<script src="/required-profile.js?v=profile-fix-2"></script>
+<script src="/floating-menu.js"></script>
+<script src="/frequency-slider.js"></script>
+<script src="/walkie-radio-play.js?v=radio-play-2"></script>
+</body>
+</html>

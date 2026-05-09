@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black_knight Admin</title>
+    <link rel="icon" type="image/png" href="./assets/black-knight-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
+    <style>
+      body {
+        background: #f5f7f6;
+      }
+
+      .admin-app {
+        width: min(1180px, calc(100% - 28px));
+        margin: 18px auto;
+      }
+
+      .admin-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .admin-title h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      .admin-title p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .admin-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .admin-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 14px;
+        cursor: pointer;
+        color: white;
+        background: var(--ink);
+        font-weight: 800;
+      }
+
+      .admin-btn.secondary {
+        color: var(--ink);
+        background: #e8efea;
+      }
+
+      .login-box,
+      .admin-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 12px 34px rgba(29, 43, 35, 0.08);
+      }
+
+      .login-box {
+        display: grid;
+        gap: 12px;
+        width: min(420px, 100%);
+        padding: 18px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .stat-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: white;
+      }
+
+      .stat-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .stat-card strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.8rem;
+      }
+
+      .admin-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        gap: 14px;
+      }
+
+      .admin-card {
+        overflow: hidden;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px;
+      }
+
+      .card-header h2 {
+        margin: 0;
+        font-size: 1rem;
+      }
+
+      .filter-tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .filter-tabs button,
+      .row-action {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        cursor: pointer;
+        color: var(--ink);
+        background: #f6faf7;
+        font-weight: 800;
+      }
+
+      .filter-tabs button.active {
+        color: white;
+        border-color: var(--accent);
+        background: var(--accent);
+      }
+
+      .admin-list {
+        display: grid;
+        gap: 0;
+      }
+
+      .admin-row {
+        display: grid;
+        grid-template-columns: 1.1fr 1.4fr auto;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        padding: 13px 14px;
+      }
+
+      .admin-row:last-child {
+        border-bottom: 0;
+      }
+
+      .row-title {
+        display: grid;
+        gap: 4px;
+      }
+
+      .row-title strong {
+        font-size: 0.96rem;
+      }
+
+      .row-title span,
+      .row-detail {
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .row-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .row-action.danger {
+        color: white;
+        border-color: var(--danger);
+        background: var(--danger);
+      }
+
+      .analytics-body {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .chart-row {
+        display: grid;
+        grid-template-columns: 78px 1fr 98px;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.82rem;
+      }
+
+      .chart-bar {
+        height: 16px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3ef;
+      }
+
+      .chart-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--accent);
+      }
+
+      .empty-admin {
+        padding: 24px;
+        color: var(--muted);
+        text-align: center;
+        font-weight: 700;
+      }
+
+      @media (max-width: 920px) {
+        .stats-grid,
+        .admin-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-row {
+          grid-template-columns: 1fr;
+        }
+
+        .row-actions {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="admin-app">
+      <header class="admin-top">
+        <div class="admin-title">
+          <img class="admin-logo" src="./assets/black-knight-logo.png" alt="Black Knight logo" />
+          <p class="eyebrow">Black_knight Admin</p>
+          <h1>Operations Dashboard</h1>
+          <p>Live users, hourly analytics, reports, and bans.</p>
+        </div>
+        <div class="admin-actions">
+          <button id="refreshBtn" class="admin-btn secondary" type="button">Refresh</button>
+          <button id="logoutBtn" class="admin-btn" type="button">Logout</button>
+        </div>
+      </header>
+
+      <form id="loginForm" class="login-box">
+        <label>
+          Admin password
+          <input id="passwordInput" type="password" placeholder="Enter admin password" />
+        </label>
+        <button class="admin-btn" type="submit">Login</button>
+        <p id="loginError" style="margin: 0; color: var(--danger);"></p>
+      </form>
+
+      <section id="statsGrid" class="stats-grid"></section>
+
+      <section class="admin-grid">
+        <article id="analyticsCard" class="admin-card"></article>
+
+        <article class="admin-card">
+          <div class="card-header">
+            <h2>Bans</h2>
+          </div>
+          <div id="bansList" class="admin-list"></div>
+        </article>
+      </section>
+
+      <section class="admin-card" style="margin-top: 14px;">
+        <div class="card-header">
+          <h2>Reports</h2>
+          <div class="filter-tabs">
+            <button class="active" type="button" data-filter="all">All</button>
+            <button type="button" data-filter="open">Open</button>
+            <button type="button" data-filter="reviewed">Reviewed</button>
+          </div>
+        </div>
+        <div id="reportsList" class="admin-list"></div>
+      </section>
+
+      <section class="admin-card" style="margin-top: 14px;">
+        <div class="card-header">
+          <h2>Radio Frequency Manager</h2>
+          <span class="row-detail">Controls Walkie radio-locked frequencies</span>
+        </div>
+        <form id="radioForm" class="radio-admin-form">
+          <label>Frequency<input id="radioFrequency" type="number" min="30" max="106.4" step="0.01" placeholder="98.30" /></label>
+          <label>Station name<input id="radioName" type="text" maxlength="60" placeholder="Radio Mirchi" /></label>
+          <label>Page URL<input id="radioPageUrl" type="url" placeholder="https://..." /></label>
+          <label>Direct stream URL<input id="radioStreamUrl" type="url" placeholder="https://.../live.mp3" /></label>
+          <label class="check-row"><input id="radioLocked" type="checkbox" checked /> Lock voice on this frequency</label>
+          <button id="extractRadioStreamBtn" class="admin-btn secondary" type="button">Auto find stream</button>
+          <button class="admin-btn" type="submit">Save radio frequency</button>
+        </form>
+        <div id="radioList" class="admin-list"></div>
+      </section>
+    </main>
+
+    <script>
+      const loginForm = document.querySelector("#loginForm");
+      const passwordInput = document.querySelector("#passwordInput");
+      const loginError = document.querySelector("#loginError");
+      const refreshBtn = document.querySelector("#refreshBtn");
+      const logoutBtn = document.querySelector("#logoutBtn");
+      const statsGrid = document.querySelector("#statsGrid");
+      const analyticsCard = document.querySelector("#analyticsCard");
+      const reportsList = document.querySelector("#reportsList");
+      const bansList = document.querySelector("#bansList");
+      const filterTabs = document.querySelector(".filter-tabs");
+      const radioForm = document.querySelector("#radioForm");
+      const radioList = document.querySelector("#radioList");
+      const radioFrequency = document.querySelector("#radioFrequency");
+      const radioName = document.querySelector("#radioName");
+      const radioPageUrl = document.querySelector("#radioPageUrl");
+      const radioStreamUrl = document.querySelector("#radioStreamUrl");
+      const radioLocked = document.querySelector("#radioLocked");
+      const extractRadioStreamBtn = document.querySelector("#extractRadioStreamBtn");
+
+      let currentReports = [];
+      let reportFilter = "all";
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatDate(value) {
+        return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+      }
+
+      function cleanUrl(value) {
+        const match = String(value || "").trim().match(/https?:\/\/[^\s"'<>]+/i);
+        return match ? match[0] : "";
+      }
+
+      function setLoggedIn(loggedIn) {
+        loginForm.style.display = loggedIn ? "none" : "grid";
+        statsGrid.style.display = loggedIn ? "grid" : "none";
+        analyticsCard.style.display = loggedIn ? "block" : "none";
+        reportsList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        bansList.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        radioForm.closest(".admin-card").style.display = loggedIn ? "block" : "none";
+        refreshBtn.style.display = loggedIn ? "inline-block" : "none";
+        logoutBtn.style.display = loggedIn ? "inline-block" : "none";
+      }
+
+      function renderStats(stats) {
+        const items = [
+          ["Online", stats.onlineUsers],
+          ["Waiting", stats.waitingUsers],
+          ["Open reports", stats.openReports],
+          ["Total reports", stats.totalReports],
+          ["Total bans", stats.totalBans],
+        ];
+
+        statsGrid.innerHTML = items
+          .map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`)
+          .join("");
+      }
+
+      function renderAnalytics(analytics) {
+        const rows = analytics.rows || [];
+        const maxTotal = Math.max(1, ...rows.map((row) => row.total));
+        const formatter = new Intl.DateTimeFormat(undefined, { hour: "2-digit", day: "2-digit", month: "short" });
+
+        analyticsCard.innerHTML = `
+          <div class="card-header"><h2>Hourly Analytics</h2><span class="row-detail">Last 48 hours</span></div>
+          <div class="analytics-body">
+            ${
+              rows.length
+                ? rows
+                    .map(
+                      (row) => `
+                        <div class="chart-row">
+                          <span>${formatter.format(new Date(row.hour))}</span>
+                          <div class="chart-bar"><div class="chart-fill" style="width: ${(row.total / maxTotal) * 100}%"></div></div>
+                          <strong>${row.total} / M${row.male} F${row.female}</strong>
+                        </div>
+                      `,
+                    )
+                    .join("")
+                : '<div class="empty-admin">No analytics yet.</div>'
+            }
+          </div>
+        `;
+      }
+
+      function renderReports() {
+        const reports = currentReports.filter((report) => reportFilter === "all" || (report.status || "open") === reportFilter);
+        reportsList.innerHTML = reports.length
+          ? reports
+              .map(
+                (report) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(report.matchName)}</strong>
+                      <span>${escapeHtml(report.status || "open")} · ${escapeHtml(report.mode)} · ${formatDate(report.createdAt)}</span>
+                    </div>
+                    <div class="row-detail">
+                      ${escapeHtml(report.reason)}<br />
+                      By ${escapeHtml(report.reporterName)} · Reported ${escapeHtml(report.matchContactMasked || "guest")}
+                    </div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="review" data-id="${escapeHtml(report.id)}">Review</button>
+                      <button class="row-action danger" type="button" data-action="ban" data-id="${escapeHtml(report.id)}">Ban</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No reports for this filter.</div>';
+      }
+
+      function renderBans(bans) {
+        bansList.innerHTML = bans.length
+          ? bans
+              .map(
+                (ban) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(ban.contactMasked || ban.name || "Unknown")}</strong>
+                      <span>${formatDate(ban.createdAt)}</span>
+                    </div>
+                    <div class="row-detail">${escapeHtml(ban.reason || "Admin ban")}</div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="unban" data-id="${escapeHtml(ban.id)}">Unban</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No bans yet.</div>';
+      }
+
+      function renderRadioStations(rows) {
+        radioList.innerHTML = rows.length
+          ? rows
+              .map(
+                (station) => `
+                  <article class="admin-row">
+                    <div class="row-title">
+                      <strong>${escapeHtml(station.frequency)} FM · ${escapeHtml(station.name)}</strong>
+                      <span>${station.locked ? "Voice locked" : "Voice enabled"} · ${station.streamUrl ? "Stream ready" : "No direct stream"}</span>
+                    </div>
+                    <div class="row-detail">
+                      Page: ${escapeHtml(station.pageUrl || "-")}<br />
+                      Stream: ${escapeHtml(station.streamUrl || "-")}
+                    </div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-action="edit-radio" data-frequency="${escapeHtml(station.frequency)}">Edit</button>
+                      ${
+                        station.streamUrl
+                          ? `<button class="row-action" type="button" data-action="test-radio" data-stream="${escapeHtml(station.streamUrl)}">Test</button>`
+                          : ""
+                      }
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No radio frequencies configured.</div>';
+      }
+
+      async function loadDashboard() {
+        const statsResponse = await fetch("/api/admin/stats");
+        if (statsResponse.status === 401) {
+          setLoggedIn(false);
+          return;
+        }
+        if (statsResponse.ok) renderStats(await statsResponse.json());
+
+        const analyticsResponse = await fetch("/api/admin/analytics");
+        if (analyticsResponse.ok) renderAnalytics(await analyticsResponse.json());
+
+        const reportsResponse = await fetch("/api/reports");
+        if (reportsResponse.ok) {
+          currentReports = await reportsResponse.json();
+          renderReports();
+        }
+
+        const bansResponse = await fetch("/api/bans");
+        if (bansResponse.ok) renderBans(await bansResponse.json());
+
+        const radioResponse = await fetch("/api/admin/radio");
+        if (radioResponse.ok) renderRadioStations(await radioResponse.json());
+      }
+
+      async function checkLogin() {
+        const response = await fetch("/api/admin/me");
+        const data = await response.json();
+        setLoggedIn(data.loggedIn);
+        if (data.loggedIn) loadDashboard();
+      }
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        loginError.textContent = "";
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: passwordInput.value }),
+        });
+        if (!response.ok) {
+          loginError.textContent = "Wrong password.";
+          return;
+        }
+        passwordInput.value = "";
+        setLoggedIn(true);
+        loadDashboard();
+      });
+
+      logoutBtn.addEventListener("click", async () => {
+        await fetch("/api/admin/logout", { method: "POST" });
+        setLoggedIn(false);
+      });
+
+      refreshBtn.addEventListener("click", loadDashboard);
+
+      filterTabs.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-filter]");
+        if (!button) return;
+        reportFilter = button.dataset.filter;
+        filterTabs.querySelectorAll("button").forEach((item) => item.classList.toggle("active", item === button));
+        renderReports();
+      });
+
+      reportsList.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const report = currentReports.find((item) => item.id === button.dataset.id);
+        if (!report) return;
+
+        if (button.dataset.action === "review") {
+          await fetch(`/api/reports/${encodeURIComponent(report.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "reviewed" }),
+          });
+        }
+
+        if (button.dataset.action === "ban") {
+          const confirmed = window.confirm(`Ban "${report.matchContactMasked || report.matchName}"?`);
+          if (!confirmed) return;
+          await fetch("/api/bans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: report.matchName, contact: report.matchContact, reason: report.reason }),
+          });
+          await fetch(`/api/reports/${encodeURIComponent(report.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "reviewed" }),
+          });
+        }
+
+        loadDashboard();
+      });
+
+      bansList.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action='unban']");
+        if (!button) return;
+        await fetch(`/api/bans/${encodeURIComponent(button.dataset.id)}`, { method: "DELETE" });
+        loadDashboard();
+      });
+
+      radioForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        radioPageUrl.value = cleanUrl(radioPageUrl.value);
+        radioStreamUrl.value = cleanUrl(radioStreamUrl.value);
+        const response = await fetch("/api/admin/radio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            frequency: radioFrequency.value,
+            name: radioName.value,
+            pageUrl: radioPageUrl.value,
+            streamUrl: radioStreamUrl.value,
+            locked: radioLocked.checked,
+          }),
+        });
+        if (!response.ok) {
+          window.alert("Radio frequency save failed.");
+          return;
+        }
+        radioForm.reset();
+        radioLocked.checked = true;
+        loadDashboard();
+      });
+
+      extractRadioStreamBtn.addEventListener("click", async () => {
+        const pageUrl = cleanUrl(radioPageUrl.value);
+        if (!pageUrl) {
+          window.alert("Pehle Page URL paste karo.");
+          radioPageUrl.focus();
+          return;
+        }
+        radioPageUrl.value = pageUrl;
+
+        extractRadioStreamBtn.disabled = true;
+        extractRadioStreamBtn.textContent = "Finding...";
+        try {
+          const response = await fetch("/api/admin/radio/extract-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageUrl }),
+          });
+          const data = await response.json();
+          if (!response.ok || !data.streamUrl) {
+            window.alert(data.error || "Direct stream URL page me openly nahi mila.");
+            return;
+          }
+          radioStreamUrl.value = data.streamUrl;
+          window.alert(`Stream found: ${data.streamUrl}`);
+        } finally {
+          extractRadioStreamBtn.disabled = false;
+          extractRadioStreamBtn.textContent = "Auto find stream";
+        }
+      });
+
+      radioList.addEventListener("click", async (event) => {
+        const edit = event.target.closest("button[data-action='edit-radio']");
+        if (edit) {
+          const rows = await (await fetch("/api/admin/radio")).json();
+          const station = rows.find((item) => item.frequency === edit.dataset.frequency);
+          if (!station) return;
+          radioFrequency.value = station.frequency;
+          radioName.value = station.name;
+          radioPageUrl.value = station.pageUrl || "";
+          radioStreamUrl.value = station.streamUrl || "";
+          radioLocked.checked = station.locked !== false;
+          radioFrequency.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+
+        const test = event.target.closest("button[data-action='test-radio']");
+        if (test?.dataset.stream) {
+          new Audio(test.dataset.stream).play().catch(() => window.alert("Browser blocked autoplay. Try opening after a click."));
+        }
+      });
+
+      checkLogin();
+    </script>
+<script>
+  (function () {
+    const blockedRadioUrlParts = [
+      "schema.org",
+      "facebook.com",
+      "twitter.com",
+      "x.com",
+      "instagram.com",
+      "youtube.com",
+      "youtu.be",
+      "google.com",
+      "gstatic.com",
+      "w3.org",
+      "radiostation",
+      "application/ld+json"
+    ];
+
+    function cleanRadioUrl(value) {
+      const text = String(value || "").trim();
+      const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+      return match ? match[0] : "";
+    }
+
+    function isRealAudioStreamUrl(value) {
+      const url = cleanRadioUrl(value);
+      if (!url) return false;
+      const lower = url.toLowerCase();
+      if (blockedRadioUrlParts.some((part) => lower.includes(part))) return false;
+      if (/\.(mp3|aac|m3u8|ogg|opus|pls)(?:[?#]|$)/i.test(url)) return true;
+      return /(icecast|shoutcast|stream|livestream|listen|radiojar|radioca\.st|zeno\.fm|aacp)/i.test(url) &&
+        !/\.(html?|php|aspx?)(?:[?#]|$)/i.test(url);
+    }
+
+    function warnBadRadioUrl(url) {
+      alert(`${url} audio stream URL nahi hai. Yeh page metadata hai. Direct stream me .mp3, .aac, .m3u8, .ogg ya real Icecast/Shoutcast stream URL chahiye.`);
+    }
+
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async function patchedRadioFetch(input, init) {
+      const requestUrl = typeof input === "string" ? input : input?.url || "";
+      const method = String(init?.method || "GET").toUpperCase();
+
+      if (requestUrl.includes("/api/admin/radio") && !requestUrl.includes("extract-stream") && method === "POST" && init?.body) {
+        try {
+          const payload = JSON.parse(init.body);
+          if (payload.streamUrl && !isRealAudioStreamUrl(payload.streamUrl)) {
+            warnBadRadioUrl(payload.streamUrl);
+            return new Response(JSON.stringify({ error: "Direct stream URL must be a real audio stream." }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        } catch (error) {
+          // Existing handler will show the normal error.
+        }
+      }
+
+      const response = await nativeFetch(input, init);
+
+      if (requestUrl.includes("/api/admin/radio/extract-stream") && response.ok) {
+        try {
+          const clone = response.clone();
+          const data = await clone.json();
+          if (data?.streamUrl && !isRealAudioStreamUrl(data.streamUrl)) {
+            return new Response(JSON.stringify({ streamUrl: "", error: "No real audio stream found." }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" }
+            });
+          }
+        } catch (error) {
+          return response;
+        }
+      }
+
+      return response;
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const streamInput = document.getElementById("radioStreamUrl");
+      if (!streamInput) return;
+      streamInput.addEventListener("blur", () => {
+        const value = streamInput.value.trim();
+        if (!value) return;
+        if (!isRealAudioStreamUrl(value)) {
+          warnBadRadioUrl(value);
+          streamInput.value = "";
+          streamInput.focus();
+        }
+      });
+    });
+  })();
+</script>
+<script>
+  (function () {
+    function installAdminHardening() {
+      const startedAt = Date.now();
+      const maxAdminMinutes = 30;
+      setInterval(() => {
+        if (Date.now() - startedAt > maxAdminMinutes * 60 * 1000) {
+          document.body.innerHTML = '<main class="admin-timeout"><h1>Admin session expired</h1><p>Security ke liye panel lock ho gaya. Page refresh karke dobara login karo.</p></main>';
+        }
+      }, 30000);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          sessionStorage.setItem("bk_admin_hidden_at", String(Date.now()));
+          return;
+        }
+        const hiddenAt = Number(sessionStorage.getItem("bk_admin_hidden_at") || 0);
+        if (hiddenAt && Date.now() - hiddenAt > 10 * 60 * 1000) {
+          location.reload();
+        }
+      });
+    }
+
+    function addRadioStreamTestButton() {
+      const streamInput = document.getElementById("radioStreamUrl");
+      if (!streamInput || document.getElementById("testRadioStreamBtn")) return;
+
+      const button = document.createElement("button");
+      button.id = "testRadioStreamBtn";
+      button.type = "button";
+      button.className = "radio-test-btn";
+      button.textContent = "Test stream";
+      streamInput.insertAdjacentElement("afterend", button);
+
+      button.addEventListener("click", async () => {
+        const streamUrl = streamInput.value.trim();
+        if (!streamUrl) {
+          alert("Pehle Direct stream URL paste karo.");
+          return;
+        }
+        button.textContent = "Testing...";
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/admin/radio/test-stream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ streamUrl })
+          });
+          const data = await response.json();
+          alert(data.ok ? "Stream working hai." : (data.error || "Stream working nahi hai."));
+        } catch (error) {
+          alert("Stream test fail ho gaya.");
+        } finally {
+          button.textContent = "Test stream";
+          button.disabled = false;
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      installAdminHardening();
+      addRadioStreamTestButton();
+    });
+  })();
+</script>
+<script>
+  (function () {
+    const refreshMs = 20000;
+    let lastInputAt = 0;
+
+    function isEditing() {
+      const active = document.activeElement;
+      const tag = active?.tagName?.toLowerCase();
+      const editingField = tag === "input" || tag === "textarea" || tag === "select" || active?.isContentEditable;
+      return editingField || Date.now() - lastInputAt < 8000;
+    }
+
+    function updateRefreshBadge(seconds) {
+      let badge = document.getElementById("adminAutoRefreshBadge");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.id = "adminAutoRefreshBadge";
+        badge.className = "admin-refresh-badge";
+        document.body.appendChild(badge);
+      }
+      badge.textContent = isEditing() ? "Auto refresh paused" : `Auto refresh ${seconds}s`;
+    }
+
+    document.addEventListener("input", () => {
+      lastInputAt = Date.now();
+    }, true);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      let remaining = Math.round(refreshMs / 1000);
+      updateRefreshBadge(remaining);
+      setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+          if (!isEditing()) {
+            location.reload();
+            return;
+          }
+          remaining = Math.round(refreshMs / 1000);
+        }
+        updateRefreshBadge(remaining);
+      }, 1000);
+    });
+  })();
+</script>
+<script>
+  (function () {
+    function createGenderOnlineCard() {
+      if (document.getElementById("adminGenderOnlineCard")) return;
+      const card = document.createElement("section");
+      card.id = "adminGenderOnlineCard";
+      card.className = "admin-gender-online-card";
+      card.innerHTML = `
+        <div class="admin-gender-head">
+          <span>Live users now</span>
+          <strong id="adminGenderUpdated">Updating...</strong>
+        </div>
+        <div class="admin-gender-grid">
+          <div><span>Total</span><strong id="adminOnlineTotal">0</strong></div>
+          <div><span>Male</span><strong id="adminOnlineMale">0</strong></div>
+          <div><span>Female</span><strong id="adminOnlineFemale">0</strong></div>
+          <div><span>Other</span><strong id="adminOnlineOther">0</strong></div>
+        </div>
+      `;
+
+      const main = document.querySelector("main") || document.querySelector(".admin-shell") || document.body;
+      main.insertBefore(card, main.firstChild);
+    }
+
+    async function refreshGenderOnlineCard() {
+      createGenderOnlineCard();
+      try {
+        const response = await fetch("/api/admin/online-gender", { cache: "no-store" });
+        const data = await response.json();
+        document.getElementById("adminOnlineTotal").textContent = data.total ?? 0;
+        document.getElementById("adminOnlineMale").textContent = data.male ?? 0;
+        document.getElementById("adminOnlineFemale").textContent = data.female ?? 0;
+        document.getElementById("adminOnlineOther").textContent = Number(data.other || 0) + Number(data.unknown || 0);
+        document.getElementById("adminGenderUpdated").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      } catch (error) {
+        document.getElementById("adminGenderUpdated").textContent = "Offline";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      refreshGenderOnlineCard();
+      setInterval(refreshGenderOnlineCard, 5000);
+    });
+  })();
+</script>
+<script>
+  (function () {
+    document.addEventListener("DOMContentLoaded", () => {
+      const rows = Array.from(document.querySelectorAll("tr, .radio-row, .radio-station-row, li, .station-row"));
+      const bigFmRow = rows.find((row) => /92\.?70|big fm/i.test(row.textContent || ""));
+      const editButton = bigFmRow?.querySelector("button");
+      if (!bigFmRow || !editButton) return;
+      editButton.addEventListener("click", () => {
+        setTimeout(() => {
+          const frequency = document.querySelector("#radioFrequency, [name='frequency']");
+          const name = document.querySelector("#radioStationName, [name='name'], [name='stationName']");
+          const pageUrl = document.querySelector("#radioPageUrl, [name='pageUrl']");
+          const streamUrl = document.querySelector("#radioStreamUrl, [name='streamUrl']");
+          if (frequency && String(frequency.value || "").startsWith("92.7")) {
+            if (name && !name.value) name.value = "Big FM";
+            if (pageUrl && !pageUrl.value) pageUrl.value = "https://onlineradiofm.in/stations/big";
+            if (streamUrl && !streamUrl.value) streamUrl.value = "https://stream.zeno.fm/dbstwo3dvhhtv";
+          }
+        }, 100);
+      });
+    });
+  })();
+</script>
+<a class="admin-feedback-link" href="/admin-feedback.html">Feedback Inbox</a>
+</body>
+</html>
