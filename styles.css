@@ -4419,9 +4419,13 @@ body:has(.chat-panel.chat-mode) [class*="end" i] {
 .bk-ai-agent {
   position: fixed;
   right: 18px;
-  bottom: 18px;
+  bottom: 96px;
   z-index: 100000;
   font-family: inherit;
+}
+
+body:has(.admin-app) .bk-ai-agent {
+  bottom: 88px;
 }
 
 .bk-ai-toggle {
@@ -4557,7 +4561,11 @@ body:has(.chat-panel.chat-mode) [class*="end" i] {
 @media (max-width: 640px) {
   .bk-ai-agent {
     right: 12px;
-    bottom: 82px;
+    bottom: 158px;
+  }
+
+  body:has(.admin-app) .bk-ai-agent {
+    bottom: 128px;
   }
 
   .bk-ai-panel {
