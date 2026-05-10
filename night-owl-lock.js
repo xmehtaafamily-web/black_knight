@@ -50,7 +50,7 @@
     if (!isNightOwl || isNightOwlHour()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    alert("Night Owl mood sirf 3 AM se 3:59 AM tak unlock hota hai.");
+    alert("Night Owl mood is only unlocked from 3:00 AM to 3:59 AM.");
   }, true);
 
   document.addEventListener("DOMContentLoaded", applyLockState);

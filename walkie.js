@@ -39,7 +39,7 @@ function getProfile() {
 function requireProfile() {
   const profile = getProfile();
   if (!profile.name || !profile.gender) {
-    addMessage("System", "Pehle home page par display name aur gender fill karo. Bina profile Walkie Talkie join nahi hoga.");
+    addMessage("System", "Please fill your display name and gender on the home page first. Walkie Talkie cannot start without a profile.");
     return null;
   }
   return profile;
@@ -196,7 +196,7 @@ function renderRadioLock(radio) {
       walkieRadioAudio.pause();
       walkieRadioAudio.removeAttribute("src");
       walkieRadioAudio.classList.remove("visible");
-      showVoiceStatus("Direct stream URL chahiye. Page URL auto radio audio nahi chala sakta.");
+      showVoiceStatus("A direct stream URL is required. A page URL cannot autoplay radio audio.");
     }
   }
 }
@@ -238,7 +238,7 @@ frequencyForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const frequency = normalizeFrequency(frequencyInput.value);
   if (!frequency) {
-    addMessage("System", "Frequency 30.00 se 100.00 ke beech honi chahiye.");
+    addMessage("System", "Frequency must be between 30.00 and 100.00.");
     return;
   }
   const profile = requireProfile();
@@ -373,7 +373,7 @@ frequencyForm.addEventListener(
     event.stopImmediatePropagation();
     const frequency = normalizeFrequency(frequencyInput.value);
     if (!frequency) {
-      addMessage("System", "Frequency 30.00 se 100.00 ke beech honi chahiye.");
+      addMessage("System", "Frequency must be between 30.00 and 100.00.");
       return;
     }
     joinFrequency(frequency);
@@ -383,7 +383,7 @@ frequencyForm.addEventListener(
 
 async function startTalking() {
   if (activeRadioLock) {
-    showVoiceStatus("Radio channel par voice disabled hai. Chat use karo.");
+    showVoiceStatus("Voice is disabled on radio channels. Use chat instead.");
     return;
   }
   if (!activeFrequency || !(await ensureMic())) return;

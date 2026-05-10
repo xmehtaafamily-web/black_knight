@@ -68,7 +68,7 @@
           ${media}
         </a>
         <h2>${campaign.title}</h2>
-        <p class="bk-interstitial-copy">Ad dekhne se site free chalti rahegi. Cross kuch seconds me active ho jayega.</p>
+        <p class="bk-interstitial-copy">Sponsored offers help keep this site free. The close button will activate in a few seconds.</p>
         <p class="bk-interstitial-timer">Close in 3</p>
       </div>
     `;

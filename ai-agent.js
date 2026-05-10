@@ -79,7 +79,7 @@
       addMessage("ai", data.answer || data.error || "No response.");
     } catch (error) {
       if (loading) loading.remove();
-      addMessage("ai", "AI connect nahi ho pa raha. Thodi der baad try karo.");
+      addMessage("ai", "AI cannot connect right now. Please try again later.");
     }
   }
 

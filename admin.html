@@ -615,7 +615,7 @@
       extractRadioStreamBtn.addEventListener("click", async () => {
         const pageUrl = cleanUrl(radioPageUrl.value);
         if (!pageUrl) {
-          window.alert("Pehle Page URL paste karo.");
+          window.alert("Please paste the Page URL first.");
           radioPageUrl.focus();
           return;
         }
@@ -631,7 +631,7 @@
           });
           const data = await response.json();
           if (!response.ok || !data.streamUrl) {
-            window.alert(data.error || "Direct stream URL page me openly nahi mila.");
+            window.alert(data.error || "A direct stream URL was not found on this page.");
             return;
           }
           radioStreamUrl.value = data.streamUrl;
@@ -699,7 +699,7 @@
     }
 
     function warnBadRadioUrl(url) {
-      alert(`${url} audio stream URL nahi hai. Yeh page metadata hai. Direct stream me .mp3, .aac, .m3u8, .ogg ya real Icecast/Shoutcast stream URL chahiye.`);
+      alert(`${url} is not an audio stream URL. It looks like page metadata. A direct stream must be a .mp3, .aac, .m3u8, .ogg, or real Icecast/Shoutcast stream URL.`);
     }
 
     const nativeFetch = window.fetch.bind(window);
@@ -764,7 +764,7 @@
       const maxAdminMinutes = 30;
       setInterval(() => {
         if (Date.now() - startedAt > maxAdminMinutes * 60 * 1000) {
-          document.body.innerHTML = '<main class="admin-timeout"><h1>Admin session expired</h1><p>Security ke liye panel lock ho gaya. Page refresh karke dobara login karo.</p></main>';
+          document.body.innerHTML = '<main class="admin-timeout"><h1>Admin session expired</h1><p>The panel has been locked for security. Refresh the page and log in again.</p></main>';
         }
       }, 30000);
 
@@ -794,7 +794,7 @@
       button.addEventListener("click", async () => {
         const streamUrl = streamInput.value.trim();
         if (!streamUrl) {
-          alert("Pehle Direct stream URL paste karo.");
+          alert("Please paste the direct stream URL first.");
           return;
         }
         button.textContent = "Testing...";
@@ -806,9 +806,9 @@
             body: JSON.stringify({ streamUrl })
           });
           const data = await response.json();
-          alert(data.ok ? "Stream working hai." : (data.error || "Stream working nahi hai."));
+          alert(data.ok ? "Stream is working." : (data.error || "Stream is not working."));
         } catch (error) {
-          alert("Stream test fail ho gaya.");
+          alert("Stream test failed.");
         } finally {
           button.textContent = "Test stream";
           button.disabled = false;
@@ -988,6 +988,6 @@
   })();
 </script>
 <a class="admin-feedback-link" href="/admin-feedback.html">Feedback Inbox</a>
-<script src="/ai-agent.js?v=ai-1"></script>
+<script src="/ai-agent.js?v=english-1"></script>
 </body>
 </html>

@@ -38,7 +38,7 @@
 
         <label>
           Message
-          <textarea name="message" rows="6" maxlength="1200" placeholder="Kya issue aa raha hai? Kya improve karna chahiye?" required></textarea>
+          <textarea name="message" rows="6" maxlength="1200" placeholder="What issue are you facing? What should we improve?" required></textarea>
         </label>
 
         <label>
@@ -71,11 +71,11 @@
         form.hidden = true;
         form.reset();
       } catch (error) {
-        status.textContent = "Feedback send nahi hua. Thodi der baad try karo.";
+        status.textContent = "Feedback could not be sent. Please try again later.";
       }
     });
   </script>
 <script src="/visitor-tracker.js?v=visits-1"></script>
-<script src="/ai-agent.js?v=ai-1"></script>
+<script src="/ai-agent.js?v=english-1"></script>
 </body>
 </html>

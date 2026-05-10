@@ -220,7 +220,7 @@ function buildLocalAgentAnswer({ role, prompt, adminData = null }) {
       .join(", ");
 
     if (has("report", "moderation", "safety", "abuse")) {
-      return `Open reports: ${openReports.length}. Total reports: ${reports.length}. Priority: Abuse/Nudity/Threat reports pehle review karo, repeated reporter/device ko cooldown do, aur same target par multiple reports hain to ban/mute action consider karo.`;
+      return `Open reports: ${openReports.length}. Total reports: ${reports.length}. Priority: review Abuse/Nudity/Threat reports first, apply cooldowns to repeated reporters/devices, and consider mute/ban actions when multiple reports target the same session.`;
     }
     if (has("visit", "traffic", "user", "analytics", "open")) {
       return `Traffic summary: today ${visits.todayVisits || 0} opens, last 24h ${visits.last24hVisits || 0}, unique today ${visits.uniqueToday || 0}. Top pages: ${topPages || "not enough data yet"}.`;
@@ -235,24 +235,24 @@ function buildLocalAgentAnswer({ role, prompt, adminData = null }) {
   }
 
   if (has("safe", "safety", "secure", "privacy")) {
-    return "Safety tips: phone number, address, OTP/password, private photos share mat karo. Koi abusive lage to Block/Report dabao aur instantly leave karo.";
+    return "Safety tips: do not share your phone number, address, OTP/password, or private photos. If someone is abusive, use Block/Report and leave instantly.";
   }
   if (has("reconnect", "code")) {
-    return "Reconnect code first match ke baad save hota hai. Same person se dobara baat karni ho to dono users woh code enter kar sakte hain. Code private rakho.";
+    return "Your reconnect code is saved after the first match. To talk to the same person again, both users can enter that code. Keep the code private.";
   }
   if (has("video", "camera", "mic", "permission")) {
-    return "Video chat ke liye browser camera/mic permission allow karo. Agar permission nahi aa rahi to site settings me Camera/Microphone Allow karo, phir page reload karo.";
+    return "For video chat, allow camera and microphone permissions in your browser. If the permission popup does not appear, open site settings, allow Camera/Microphone, then reload the page.";
   }
   if (has("walkie", "frequency", "radio")) {
-    return "Walkie Talkie me frequency select karke Join frequency dabao. Radio-locked frequency par sirf radio/chat chalega, voice talk disabled rahega.";
+    return "In Walkie Talkie, choose a frequency and tap Join frequency. On radio-locked frequencies, only radio/chat will work and voice talk stays disabled.";
   }
   if (has("report", "block")) {
-    return "Report/Block button abusive, spam, nudity, harassment, fake/bot ya threat case me use karo. Report ke baad match safety ke liye disconnect ho sakta hai.";
+    return "Use Report/Block for abuse, spam, nudity, harassment, fake/bot behavior, or threats. After a report, the match may disconnect for safety.";
   }
-  if (has("ask", "icebreaker", "question", "baat")) {
-    return "Try this: “What changed your life forever?”, “Aaj ka best moment kya tha?”, “Agar kal free ho to kya karoge?”";
+  if (has("ask", "icebreaker", "question", "talk")) {
+    return "Try this: “What changed your life forever?”, “What was the best moment of your day?”, “If tomorrow was completely free, what would you do?”";
   }
-  return "Main Black_knight help agent hoon. Tum safety, reconnect, video permission, walkie frequency, report/block, ya chat ideas ke baare me puch sakte ho.";
+  return "I am the Black_knight help agent. You can ask about safety, reconnect codes, video permissions, walkie frequencies, report/block, or chat ideas.";
 }
 
 async function askBlackKnightAgent({ role, prompt, context = "", adminData = null }) {
@@ -294,7 +294,7 @@ async function askBlackKnightAgent({ role, prompt, context = "", adminData = nul
 
   if (!response.ok) {
     return {
-      answer: "AI service abhi response nahi de pa rahi. API key/model/settings check karo.",
+      answer: "The AI service is not responding right now. Check the API key, model, and settings.",
       fallback: true,
     };
   }
@@ -307,7 +307,7 @@ async function askBlackKnightAgent({ role, prompt, context = "", adminData = nul
       .map((item) => item.text || "")
       .join("")
       .trim() ||
-    "AI response empty aaya.";
+    "The AI response was empty.";
 
   return { answer: security.sanitizeText(answer, 1800), fallback: false };
 }

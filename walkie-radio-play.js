@@ -130,7 +130,7 @@
         button.textContent = currentRadio?.name ? `Pause ${currentRadio.name}` : "Pause Radio";
       } catch (error) {
         button.textContent = "Tap again to play";
-        alert("Browser ne autoplay block kiya. Play Radio button dobara tap karo.");
+        alert("The browser blocked autoplay. Tap the Play Radio button again.");
       }
     });
   }

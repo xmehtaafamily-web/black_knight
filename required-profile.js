@@ -55,7 +55,7 @@
   }
 
   function showProfileRequired() {
-    alert("Pehle name aur Your gender select karo. Uske bina chat, video aur walkie talkie start nahi hoga.");
+    alert("Please enter your name and select your gender first. Chat, video chat and walkie talkie will not start without them.");
   }
 
   function isStartAction(element) {

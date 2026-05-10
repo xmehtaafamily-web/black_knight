@@ -252,7 +252,7 @@ document.addEventListener("click", (event) => {
   if (!walkieLink) return;
   if (!displayNameInput.value.trim() && !localStorage.getItem(storageKeys.name)) {
     event.preventDefault();
-    window.alert("Walkie Talkie use karne ke liye pehle display name fill karo.");
+    window.alert("Please enter a display name before using Walkie Talkie.");
     displayNameInput.focus();
     return;
   }
