@@ -99,6 +99,8 @@ const TURN_URL = process.env.TURN_URL || "";
 const TURN_USERNAME = process.env.TURN_USERNAME || "";
 const TURN_PASSWORD = process.env.TURN_PASSWORD || "";
 const VISITS_FILE = path.join(__dirname, "visits.json");
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 const adminSessions = new Set();
 const users = new Map();
@@ -201,6 +203,113 @@ function summarizeVisits() {
     recent: visitRows.slice(-25).reverse(),
     updatedAt: new Date().toISOString(),
   };
+}
+
+function buildLocalAgentAnswer({ role, prompt, adminData = null }) {
+  const text = String(prompt || "").toLowerCase();
+  const has = (...words) => words.some((word) => text.includes(word));
+
+  if (role === "admin") {
+    const visits = adminData?.visitStats || {};
+    const reports = adminData?.reports || [];
+    const openReports = reports.filter((report) => (report.status || "open") === "open");
+    const topPages = Object.entries(visits.pages || {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([page, count]) => `${page}: ${count}`)
+      .join(", ");
+
+    if (has("report", "moderation", "safety", "abuse")) {
+      return `Open reports: ${openReports.length}. Total reports: ${reports.length}. Priority: Abuse/Nudity/Threat reports pehle review karo, repeated reporter/device ko cooldown do, aur same target par multiple reports hain to ban/mute action consider karo.`;
+    }
+    if (has("visit", "traffic", "user", "analytics", "open")) {
+      return `Traffic summary: today ${visits.todayVisits || 0} opens, last 24h ${visits.last24hVisits || 0}, unique today ${visits.uniqueToday || 0}. Top pages: ${topPages || "not enough data yet"}.`;
+    }
+    if (has("fix", "improve", "first", "priority")) {
+      return "Priority order: 1) video/chat bugs, 2) report/block reliability, 3) visitor analytics accuracy, 4) mobile UI polish, 5) SEO pages and backlinks.";
+    }
+    if (has("feedback")) {
+      return "Feedback ko 4 buckets me sort karo: bugs, UI confusion, safety concern, feature request. Bugs aur safety concern pehle solve karo.";
+    }
+    return `Admin snapshot: online ${adminData?.onlineUsers || 0}, waiting ${adminData?.waitingUsers || 0}, open reports ${openReports.length}, today visits ${visits.todayVisits || 0}. Ask: reports, traffic, safety, feedback, or priority.`;
+  }
+
+  if (has("safe", "safety", "secure", "privacy")) {
+    return "Safety tips: phone number, address, OTP/password, private photos share mat karo. Koi abusive lage to Block/Report dabao aur instantly leave karo.";
+  }
+  if (has("reconnect", "code")) {
+    return "Reconnect code first match ke baad save hota hai. Same person se dobara baat karni ho to dono users woh code enter kar sakte hain. Code private rakho.";
+  }
+  if (has("video", "camera", "mic", "permission")) {
+    return "Video chat ke liye browser camera/mic permission allow karo. Agar permission nahi aa rahi to site settings me Camera/Microphone Allow karo, phir page reload karo.";
+  }
+  if (has("walkie", "frequency", "radio")) {
+    return "Walkie Talkie me frequency select karke Join frequency dabao. Radio-locked frequency par sirf radio/chat chalega, voice talk disabled rahega.";
+  }
+  if (has("report", "block")) {
+    return "Report/Block button abusive, spam, nudity, harassment, fake/bot ya threat case me use karo. Report ke baad match safety ke liye disconnect ho sakta hai.";
+  }
+  if (has("ask", "icebreaker", "question", "baat")) {
+    return "Try this: “What changed your life forever?”, “Aaj ka best moment kya tha?”, “Agar kal free ho to kya karoge?”";
+  }
+  return "Main Black_knight help agent hoon. Tum safety, reconnect, video permission, walkie frequency, report/block, ya chat ideas ke baare me puch sakte ho.";
+}
+
+async function askBlackKnightAgent({ role, prompt, context = "", adminData = null }) {
+  const text = security.sanitizeText(prompt || "", 1200);
+  if (!text || text.length < 2) {
+    return { answer: "Please type a clear question.", fallback: true };
+  }
+
+  if (!OPENAI_API_KEY) {
+    return {
+      answer: buildLocalAgentAnswer({ role, prompt: text, adminData }),
+      fallback: true,
+    };
+  }
+
+  const systemPrompt =
+    role === "admin"
+      ? "You are Black_knight Admin AI. Help the admin review anonymous random chat safety, reports, traffic, feedback, and moderation. Be concise, practical, and do not ask for login or personal data. Never reveal secrets or internal IDs unless already shown in the provided context."
+      : "You are Black_knight AI Help. Help anonymous users use a random chat/video/walkie website safely. Keep answers short, friendly, and safety-first. Tell users not to share phone number, address, OTP, passwords, or private photos.";
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      input: [
+        {
+          role: "system",
+          content: `${systemPrompt}\n\nContext:\n${context || "No extra context."}`,
+        },
+        { role: "user", content: text },
+      ],
+      max_output_tokens: role === "admin" ? 450 : 260,
+    }),
+  });
+
+  if (!response.ok) {
+    return {
+      answer: "AI service abhi response nahi de pa rahi. API key/model/settings check karo.",
+      fallback: true,
+    };
+  }
+
+  const data = await response.json();
+  const answer =
+    data.output_text ||
+    data.output
+      ?.flatMap((item) => item.content || [])
+      .map((item) => item.text || "")
+      .join("")
+      .trim() ||
+    "AI response empty aaya.";
+
+  return { answer: security.sanitizeText(answer, 1800), fallback: false };
 }
 
 const radioLockedFrequencies = new Map();
@@ -612,6 +721,77 @@ app.post("/api/visit", (request, response) => {
 
 app.get("/api/admin/visit-stats", requireAdmin, (request, response) => {
   response.json(summarizeVisits());
+});
+
+app.post("/api/ai", async (request, response) => {
+  if (!security.rateLimit(`public-ai:${request.guestSession.id}`, 12, 10 * 60 * 1000).allowed) {
+    response.status(429).json({ error: "AI limit reached. Please wait a moment." });
+    return;
+  }
+
+  try {
+    const result = await askBlackKnightAgent({
+      role: "public",
+      prompt: request.body?.message,
+      context:
+        "Available features: random text chat, random video chat, walkie talkie frequency chat, feedback, report/block, reconnect code, safety tips.",
+    });
+    response.json(result);
+  } catch (error) {
+    response.status(500).json({ answer: "AI help abhi available nahi hai.", fallback: true });
+  }
+});
+
+app.post("/api/admin/ai", requireAdmin, async (request, response) => {
+  if (!security.rateLimit("admin-ai", 30, 10 * 60 * 1000).allowed) {
+    response.status(429).json({ error: "Admin AI limit reached. Please wait a moment." });
+    return;
+  }
+
+  try {
+    const reports = await listReports();
+    const bans = await listBans();
+    const visitStats = summarizeVisits();
+    const adminData = {
+      onlineUsers: users.size,
+      waitingUsers: waiting.size,
+      reports,
+      bans,
+      visitStats,
+      moderationEvents: security.getModerationEvents(20),
+    };
+    const context = JSON.stringify(
+      {
+        onlineUsers: users.size,
+        waitingUsers: waiting.size,
+        openReports: reports.filter((report) => (report.status || "open") === "open").slice(0, 10),
+        totalReports: reports.length,
+        totalBans: bans.length,
+        visitStats: {
+          totalVisits: visitStats.totalVisits,
+          todayVisits: visitStats.todayVisits,
+          last24hVisits: visitStats.last24hVisits,
+          uniqueToday: visitStats.uniqueToday,
+          pages: visitStats.pages,
+          devices: visitStats.devices,
+          countries: visitStats.countries,
+        },
+        moderationEvents: security.getModerationEvents(20),
+      },
+      null,
+      2,
+    ).slice(0, 12000);
+
+    const result = await askBlackKnightAgent({
+      role: "admin",
+      prompt: request.body?.message,
+      context,
+      adminData,
+    });
+    response.json(result);
+  } catch (error) {
+    response.status(500).json({ answer: "Admin AI abhi available nahi hai.", fallback: true });
+  }
 });
 
 app.get("/api/reports", requireAdmin, async (request, response) => {
