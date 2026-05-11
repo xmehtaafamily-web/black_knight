@@ -699,28 +699,14 @@ window.addSystemMessage = (text) => addMessage("System", text);
   if (pageMode !== "video") return;
   const videoArea = document.querySelector(".call-stage, .video-stage");
   if (!videoArea) return;
+  videoArea.dataset.bkFullscreenBound = "true";
 
   let lastTap = 0;
 
   async function toggleFullscreen() {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        videoArea.classList.remove("video-expanded");
-        document.body.classList.remove("video-fullscreen-active");
-        return;
-      }
-      videoArea.classList.add("video-expanded");
-      document.body.classList.add("video-fullscreen-active");
-      if (videoArea.requestFullscreen) {
-        await videoArea.requestFullscreen();
-        return;
-      }
-    } catch (error) {
-      // CSS fallback below.
-    }
-    videoArea.classList.toggle("video-expanded");
-    document.body.classList.toggle("video-fullscreen-active", videoArea.classList.contains("video-expanded"));
+    videoArea.classList.toggle("custom-fullscreen");
+    videoArea.classList.toggle("video-expanded", videoArea.classList.contains("custom-fullscreen"));
+    document.body.classList.toggle("video-fullscreen-active", videoArea.classList.contains("custom-fullscreen"));
   }
 
   document.addEventListener("fullscreenchange", () => {
@@ -788,4 +774,228 @@ window.addSystemMessage = (text) => addMessage("System", text);
       videoArea.before(card);
     }
   }
+})();
+
+(function addPremiumChatAndVideoControls() {
+  let lastOutgoingMessageStatus = null;
+  let voiceRecorder = null;
+  let voiceChunks = [];
+  let usingBackCamera = false;
+  let networkTimer = null;
+
+  function emitMediaState() {
+    if (pageMode !== "video" || !currentMatch) return;
+    const videoTrack = localStream?.getVideoTracks?.()[0];
+    const audioTrack = localStream?.getAudioTracks?.()[0];
+    socket.emit("video-signal", {
+      type: "media-state",
+      camera: Boolean(videoTrack?.enabled),
+      mic: Boolean(audioTrack?.enabled),
+    });
+  }
+
+  function addChatStatus(text) {
+    if (!chatForm) return;
+    if (!lastOutgoingMessageStatus) {
+      lastOutgoingMessageStatus = document.createElement("div");
+      lastOutgoingMessageStatus.className = "message-status-line";
+      chatForm.insertAdjacentElement("beforebegin", lastOutgoingMessageStatus);
+    }
+    lastOutgoingMessageStatus.textContent = text;
+  }
+
+  function addVoiceMessage(author, audio, mimeType, own = false) {
+    if (messages.querySelector(".empty-state")) messages.innerHTML = "";
+    const node = document.createElement("div");
+    node.className = `message ${own ? "mine" : ""}`;
+    const label = document.createElement("span");
+    label.textContent = author;
+    const player = document.createElement("audio");
+    player.controls = true;
+    player.preload = "metadata";
+    player.src = audio;
+    player.type = mimeType || "audio/webm";
+    node.append(label, player);
+    messages.append(node);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function createVoiceButton() {
+    if (!chatForm || document.querySelector("#voiceNoteBtn")) return;
+    const button = document.createElement("button");
+    button.id = "voiceNoteBtn";
+    button.type = "button";
+    button.className = "voice-note-btn";
+    button.textContent = "Voice";
+    chatForm.insertBefore(button, messageInput?.nextSibling || null);
+
+    button.addEventListener("click", async () => {
+      if (!currentMatch) {
+        setSystemMessage("Wait for a match before sending a voice note.");
+        return;
+      }
+      if (voiceRecorder?.state === "recording") {
+        voiceRecorder.stop();
+        button.classList.remove("recording");
+        button.textContent = "Voice";
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceChunks = [];
+        voiceRecorder = new MediaRecorder(stream);
+        voiceRecorder.ondataavailable = (event) => {
+          if (event.data?.size) voiceChunks.push(event.data);
+        };
+        voiceRecorder.onstop = () => {
+          const blob = new Blob(voiceChunks, { type: voiceRecorder.mimeType || "audio/webm" });
+          stream.getTracks().forEach((track) => track.stop());
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const audio = String(reader.result || "");
+            addVoiceMessage(currentUser?.name || "You", audio, blob.type, true);
+            socket.emit("voice-note", { audio, mimeType: blob.type });
+            addChatStatus("Voice note sent");
+          };
+          reader.readAsDataURL(blob);
+        };
+        voiceRecorder.start();
+        button.classList.add("recording");
+        button.textContent = "Stop";
+      } catch (error) {
+        addMessage("System", "Microphone permission is required for voice notes.");
+      }
+    });
+  }
+
+  async function switchCamera() {
+    if (pageMode !== "video") return;
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    usingBackCamera = !usingBackCamera;
+    const nextStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: usingBackCamera ? { exact: "environment" } : "user" },
+      audio: true,
+    }).catch(() =>
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: usingBackCamera ? "environment" : "user" },
+        audio: true,
+      })
+    );
+
+    const oldVideo = localStream?.getVideoTracks?.()[0];
+    const newVideo = nextStream.getVideoTracks()[0];
+    const sender = peerConnection?.getSenders?.().find((item) => item.track?.kind === "video");
+    if (sender && newVideo) await sender.replaceTrack(newVideo);
+    oldVideo?.stop();
+    localStream?.getAudioTracks?.().forEach((track) => track.stop());
+    localStream = nextStream;
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+      localVideo.play().catch(() => {});
+    }
+    emitMediaState();
+  }
+
+  function createVideoTooling() {
+    if (pageMode !== "video") return;
+    const controls = document.querySelector(".call-controls");
+    if (!controls || document.querySelector("#switchCameraBtn")) return;
+
+    const switchBtn = document.createElement("button");
+    switchBtn.id = "switchCameraBtn";
+    switchBtn.type = "button";
+    switchBtn.textContent = "Switch camera";
+    switchBtn.addEventListener("click", () => {
+      switchCamera().catch(() => addMessage("System", "Camera switch is not available on this device."));
+    });
+    controls.append(switchBtn);
+
+    const quality = document.createElement("div");
+    quality.id = "networkQuality";
+    quality.className = "network-quality";
+    quality.textContent = "Network: checking";
+    document.querySelector(".video-stage, .call-stage")?.append(quality);
+
+    networkTimer = window.setInterval(async () => {
+      if (!peerConnection || !quality) return;
+      try {
+        const stats = await peerConnection.getStats();
+        let rtt = 0;
+        let packetsLost = 0;
+        stats.forEach((report) => {
+          if (report.type === "candidate-pair" && report.state === "succeeded" && report.currentRoundTripTime) {
+            rtt = Math.round(report.currentRoundTripTime * 1000);
+          }
+          if (report.type === "inbound-rtp" && report.kind === "video") packetsLost += Number(report.packetsLost || 0);
+        });
+        const label = rtt && rtt < 120 && packetsLost < 5 ? "Good" : rtt && rtt < 260 ? "Fair" : "Weak";
+        quality.textContent = `Network: ${label}${rtt ? ` ${rtt}ms` : ""}`;
+        quality.dataset.quality = label.toLowerCase();
+      } catch (error) {
+        quality.textContent = "Network: unknown";
+      }
+    }, 4000);
+  }
+
+  cameraBtn?.addEventListener("click", () => window.setTimeout(emitMediaState, 80));
+  micBtn?.addEventListener("click", () => window.setTimeout(emitMediaState, 80));
+
+  socket.on("message-delivered", () => addChatStatus("Delivered"));
+  socket.on("message-seen", () => addChatStatus("Seen"));
+  socket.on("voice-note", (payload) => {
+    if (!payload?.audio) return;
+    addVoiceMessage(payload.from?.name || "Match", payload.audio, payload.mimeType, false);
+    socket.emit("message-seen", { messageId: payload.id || "" });
+  });
+  socket.on("chat-message", (payload) => {
+    if (payload?.id) socket.emit("message-seen", { messageId: payload.id });
+  });
+  socket.on("video-signal", (payload) => {
+    if (payload?.type === "media-state") {
+      const camera = payload.camera ? "camera on" : "camera off";
+      const mic = payload.mic ? "mic on" : "mic off";
+      addMessage("System", `Match ${camera}, ${mic}.`);
+    }
+    if (payload?.type === "reconnect-request" && pageMode === "video" && currentMatch) {
+      startVideoCall().catch(() => addMessage("System", "Video reconnect failed. Try Next or start again."));
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    createVoiceButton();
+    createVideoTooling();
+  });
+  createVoiceButton();
+  createVideoTooling();
+
+  const nativeCreatePeerConnection = createPeerConnection;
+  createPeerConnection = async function enhancedCreatePeerConnection(options) {
+    const connection = await nativeCreatePeerConnection(options);
+    if (!connection.__bkReconnectHooked) {
+      connection.__bkReconnectHooked = true;
+      connection.addEventListener("connectionstatechange", () => {
+        if (["failed", "disconnected"].includes(connection.connectionState) && currentMatch) {
+          addMessage("System", "Video connection dropped. Trying to reconnect...");
+          socket.emit("video-signal", { type: "reconnect-request" });
+        }
+      });
+    }
+    return connection;
+  };
+
+  window.addEventListener("beforeunload", () => {
+    if (networkTimer) window.clearInterval(networkTimer);
+  });
+})();
+
+(function installCustomVideoFullscreen() {
+  if (pageMode !== "video") return;
+  const videoStage = document.querySelector(".video-stage.call-stage, .call-stage, .video-stage");
+  if (!videoStage) return;
+  if (videoStage.dataset.bkFullscreenBound === "true") return;
+  videoStage.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    videoStage.classList.toggle("custom-fullscreen");
+    document.body.classList.toggle("video-fullscreen-active", videoStage.classList.contains("custom-fullscreen"));
+  });
 })();

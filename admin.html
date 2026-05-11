@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Black_knight Admin</title>
-    <link rel="icon" type="image/png" href="./assets/black-knight-logo.png" />
+    <link rel="icon" type="image/svg+xml" href="./assets/black-knight-logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=dark-safety-2" />
+    <link rel="stylesheet" href="./styles.css?v=dark-safety-5" />
     <style>
       body {
         background: #f5f7f6;
@@ -254,7 +254,7 @@
     <main class="admin-app">
       <header class="admin-top">
         <div class="admin-title">
-          <img class="admin-logo" src="./assets/black-knight-logo.png" alt="Black Knight logo" />
+          <img class="admin-logo" src="./assets/black-knight-logo.svg" alt="Black Knight logo" />
           <p class="eyebrow">Black_knight Admin</p>
           <h1>Operations Dashboard</h1>
           <p>Live users, hourly analytics, reports, and bans.</p>
@@ -990,5 +990,91 @@
 <a class="admin-feedback-link" href="/admin-feedback.html">Feedback Inbox</a>
 <a class="admin-campaigns-link" href="/admin-campaigns.html">Campaigns</a>
 <script src="/ai-agent.js?v=english-1"></script>
+<script>
+  (function () {
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function ensureLiveSessionPanel() {
+      let panel = document.getElementById("liveSessionPanel");
+      if (panel) return panel;
+      panel = document.createElement("section");
+      panel.id = "liveSessionPanel";
+      panel.className = "admin-card live-session-panel";
+      panel.innerHTML = `
+        <div class="card-header">
+          <h2>Live Session Monitor</h2>
+          <span class="row-detail" id="liveSessionSummary">Loading...</span>
+        </div>
+        <div id="liveSessionList" class="live-session-grid"></div>
+      `;
+      const reports = document.querySelector("#reportsList")?.closest(".admin-card");
+      reports?.insertAdjacentElement("beforebegin", panel);
+      return panel;
+    }
+
+    async function refreshLiveSessions() {
+      const panel = ensureLiveSessionPanel();
+      if (!panel) return;
+      try {
+        const response = await fetch("/api/admin/live-sessions", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        const summary = panel.querySelector("#liveSessionSummary");
+        const list = panel.querySelector("#liveSessionList");
+        summary.textContent = `${data.total} online · ${data.male} male · ${data.female} female · ${data.chat} chat · ${data.video} video`;
+        list.innerHTML = data.sessions.length
+          ? data.sessions
+              .map(
+                (session) => `
+                  <article class="live-session-row">
+                    <div>
+                      <strong>${escapeHtml(session.name)} · ${escapeHtml(session.gender)} · ${escapeHtml(session.mode)}</strong><br>
+                      <code>${escapeHtml(session.guestSessionId)}</code>
+                    </div>
+                    <div class="row-detail">
+                      ${escapeHtml(session.mood || "Chill")} · ${escapeHtml(session.country || "Unknown")} · ${escapeHtml(session.language || "Unknown")}<br>
+                      ${session.live ? "Live match" : session.waiting ? "Waiting" : "Online"} · Risk ${escapeHtml(session.riskScore)}
+                    </div>
+                    <div class="row-actions">
+                      <button class="row-action" type="button" data-live-action="mute" data-id="${escapeHtml(session.guestSessionId)}">Mute</button>
+                      <button class="row-action danger" type="button" data-live-action="ban" data-id="${escapeHtml(session.guestSessionId)}">Ban</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<div class="empty-admin">No live sessions right now.</div>';
+      } catch (error) {}
+    }
+
+    document.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-live-action]");
+      if (!button) return;
+      const action = button.dataset.liveAction;
+      const guestSessionId = button.dataset.id;
+      const minutes = action === "ban" ? 1440 : 30;
+      const confirmed = window.confirm(`${action === "ban" ? "Ban" : "Mute"} this guest session?`);
+      if (!confirmed) return;
+      await fetch(`/api/admin/sessions/${encodeURIComponent(guestSessionId)}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minutes, reason: `Admin ${action}` }),
+      });
+      refreshLiveSessions();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      refreshLiveSessions();
+      setInterval(refreshLiveSessions, 7000);
+    });
+  })();
+</script>
 </body>
 </html>

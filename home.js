@@ -16,7 +16,7 @@ const storageKeys = {
 };
 
 function getSelected(name) {
-  return document.querySelector(`input[name="${name}"]:checked`).value;
+  return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
 }
 
 function renderRecentConnections() {
@@ -121,6 +121,9 @@ profileForm.addEventListener("submit", async (event) => {
     mood: getSelected("mood"),
     mode,
     mood: document.querySelector('input[name="mood"]:checked')?.value || localStorage.getItem("bk_mood") || "Chill",
+    country: localStorage.getItem("bk_country") || (navigator.language?.split("-")[1] || "Unknown").toUpperCase(),
+    language: localStorage.getItem("bk_language") || (navigator.language?.split("-")[0] || "en"),
+    ageRange: localStorage.getItem("bk_age_range") || "18+",
   };
 
   localStorage.setItem(storageKeys.name, profile.name);
@@ -204,10 +207,6 @@ window.BlackKnightSafety?.showSafetyPopup?.();
       <a href="/walkie.html" class="feature-card">
         <span>Walkie Talkie</span>
         <strong>Frequency channels with voice + chat</strong>
-      </a>
-      <a href="/radio.html" class="feature-card">
-        <span>Live Radio</span>
-        <strong>Play official internet radio streams</strong>
       </a>
       <div class="feature-card">
         <span>Recent Connections</span>

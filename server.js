@@ -115,6 +115,8 @@ const roomMessages = new Map();
 const confessions = [];
 const walkieChannels = new Map();
 const walkieProfiles = new Map();
+const adminMutedGuestSessions = new Map();
+const adminBannedGuestSessions = new Map();
 let visitRows = [];
 
 try {
@@ -490,9 +492,52 @@ function publicUser(user) {
     gender: user.gender,
     verified: false,
     mood: user.mood || "Chill",
+    country: user.country || "",
+    language: user.language || "",
+    ageRange: user.ageRange || "",
     badges: user.badges || ["Respectful"],
     reputation: user.reputation || 72,
   };
+}
+
+function cleanExpiredAdminActions() {
+  const now = Date.now();
+  for (const [id, record] of adminMutedGuestSessions.entries()) {
+    if (record.expiresAt && record.expiresAt <= now) adminMutedGuestSessions.delete(id);
+  }
+  for (const [id, record] of adminBannedGuestSessions.entries()) {
+    if (record.expiresAt && record.expiresAt <= now) adminBannedGuestSessions.delete(id);
+  }
+}
+
+function getAdminGuestAction(map, guestSessionId) {
+  cleanExpiredAdminActions();
+  return map.get(String(guestSessionId || ""));
+}
+
+function buildLiveSessionRows() {
+  cleanExpiredAdminActions();
+  return Array.from(users.values()).map((user) => ({
+    socketId: user.id,
+    publicId: user.publicId,
+    guestSessionId: user.guestSessionId,
+    name: user.name,
+    gender: user.gender,
+    preference: user.preference,
+    mode: user.mode,
+    mood: user.mood,
+    country: user.country || "Unknown",
+    language: user.language || "Unknown",
+    ageRange: user.ageRange || "Unknown",
+    roomId: user.roomId || "",
+    live: Boolean(user.roomId),
+    waiting: waiting.has(user.id),
+    riskScore: Math.max(0, 100 - (user.reputation || 100)),
+    muted: Boolean(getAdminGuestAction(adminMutedGuestSessions, user.guestSessionId)),
+    banned: Boolean(getAdminGuestAction(adminBannedGuestSessions, user.guestSessionId)),
+    joinedAt: user.joinedAt || "",
+    lastSeenAt: user.lastSeenAt || "",
+  }));
 }
 
 function getHourKey(date = new Date()) {
@@ -544,7 +589,8 @@ function findRoomPartner(user) {
 }
 
 function findMatch(user) {
-  let fallback = null;
+  let bestFallback = null;
+  let bestScore = -1;
   for (const candidateId of waiting) {
     if (candidateId === user.id) continue;
     const candidate = users.get(candidateId);
@@ -555,10 +601,17 @@ function findMatch(user) {
     }
     if (!candidate || candidate.roomId || !preferencesFit(user, candidate)) continue;
     if (security.isBlockedPair(user.guestSessionId, candidate.guestSessionId)) continue;
-    if (user.mood && candidate.mood && user.mood === candidate.mood) return candidate;
-    if (!fallback) fallback = candidate;
+    let score = 0;
+    if (user.mood && candidate.mood && user.mood === candidate.mood) score += 4;
+    if (user.country && candidate.country && user.country === candidate.country) score += 3;
+    if (user.language && candidate.language && user.language === candidate.language) score += 2;
+    if (user.ageRange && candidate.ageRange && user.ageRange === candidate.ageRange) score += 1;
+    if (score > bestScore) {
+      bestScore = score;
+      bestFallback = candidate;
+    }
   }
-  return fallback;
+  return bestFallback;
 }
 
 function chooseReconnectCode(a, b, roomId) {
@@ -576,9 +629,19 @@ function matchUsers(a, b, reconnectCode = "") {
   const code = reconnectCode || chooseReconnectCode(a, b, roomId);
   a.roomId = roomId;
   b.roomId = roomId;
+  const socketA = io.sockets.sockets.get(a.id);
+  const socketB = io.sockets.sockets.get(b.id);
+  if (socketA) {
+    socketA.data.roomId = roomId;
+    socketA.data.partnerId = b.id;
+  }
+  if (socketB) {
+    socketB.data.roomId = roomId;
+    socketB.data.partnerId = a.id;
+  }
 
-  io.sockets.sockets.get(a.id)?.join(roomId);
-  io.sockets.sockets.get(b.id)?.join(roomId);
+  socketA?.join(roomId);
+  socketB?.join(roomId);
 
   const initiatorId = [a.id, b.id].sort()[0];
   io.to(a.id).emit("matched", {
@@ -616,6 +679,10 @@ function endMatch(roomId, reason) {
       user.roomId = null;
       waiting.delete(user.id);
       const socket = io.sockets.sockets.get(user.id);
+      if (socket) {
+        socket.data.roomId = null;
+        socket.data.partnerId = null;
+      }
       socket?.leave(roomId);
       io.to(user.id).emit("match-ended", { reason });
     }
@@ -1093,7 +1160,9 @@ io.on("connection", (socket) => {
       join: ["start", 8, 60000],
       "join-reconnect": ["reconnect", 6, 60000],
       "chat-message": ["message", 24, 10000],
+      "voice-note": ["voiceNote", 8, 60000],
       typing: ["typing", 40, 10000],
+      "message-seen": ["seen", 60, 10000],
       next: ["skip", 12, 60000],
       report: ["report", 5, 300000],
       block: ["block", 12, 60000],
@@ -1106,6 +1175,18 @@ io.on("connection", (socket) => {
     const limit = limits[eventName];
     if (limit && !security.rateLimit(`${limit[0]}:${session.id}`, limit[1], limit[2]).allowed) {
       socket.emit("safety-warning", { message: "Too many actions. Please wait a moment." });
+      return;
+    }
+    if (getAdminGuestAction(adminBannedGuestSessions, session.id)) {
+      socket.emit("banned", { reason: "This guest session is temporarily banned by admin." });
+      socket.disconnect(true);
+      return;
+    }
+    if (
+      getAdminGuestAction(adminMutedGuestSessions, session.id) &&
+      ["chat-message", "public-room-message", "walkie-message", "walkie-audio", "walkie-live-audio", "voice-note"].includes(eventName)
+    ) {
+      socket.emit("safety-warning", { message: "This guest session is temporarily muted by admin." });
       return;
     }
     if (eventName === "chat-message" || eventName === "public-room-message") {
@@ -1132,12 +1213,27 @@ io.on("connection", (socket) => {
     const preference = profile.preference === "male" ? "male" : "female";
     const mode = profile.mode === "video" ? "video" : "text";
     const savedCode = security.validateReconnectCode(String(profile.savedCode || "").trim().toUpperCase())?.code || "";
+    const country = security.sanitizeText(profile.country || "Unknown", 32);
+    const language = security.sanitizeText(profile.language || "en", 24);
+    const ageRange = security.sanitizeText(profile.ageRange || "18+", 16);
+
+    if (getAdminGuestAction(adminBannedGuestSessions, session.id)) {
+      socket.emit("banned", { reason: "This guest session is temporarily banned by admin." });
+      socket.disconnect(true);
+      return;
+    }
 
     if (await isProfileBanned(name, "")) {
       socket.emit("banned", { reason: "This profile is banned." });
       socket.disconnect(true);
       return;
     }
+
+    socket.data.gender = gender;
+    socket.data.mode = mode;
+    socket.data.country = country;
+    socket.data.language = language;
+    socket.data.ageRange = ageRange;
 
     users.set(socket.id, {
       id: socket.id,
@@ -1150,6 +1246,9 @@ io.on("connection", (socket) => {
       preference,
       mode,
       mood: security.sanitizeText(profile.mood || "Chill", 32),
+      country,
+      language,
+      ageRange,
       email: "",
       contact: "",
       savedCode,
@@ -1157,6 +1256,8 @@ io.on("connection", (socket) => {
       badges: ["Respectful"],
       reputation: Math.max(0, 100 - session.riskScore),
       roomId: null,
+      joinedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
     });
 
     await trackJoin(users.get(socket.id));
@@ -1178,6 +1279,12 @@ io.on("connection", (socket) => {
       return;
     }
 
+    socket.data.gender = "private";
+    socket.data.mode = mode;
+    socket.data.country = security.sanitizeText(profile.country || "Unknown", 32);
+    socket.data.language = security.sanitizeText(profile.language || "en", 24);
+    socket.data.ageRange = security.sanitizeText(profile.ageRange || "18+", 16);
+
     users.set(socket.id, {
       id: socket.id,
       publicId: crypto.randomUUID(),
@@ -1189,12 +1296,17 @@ io.on("connection", (socket) => {
       preference: "private",
       mode,
       mood: "Reconnect",
+      country: socket.data.country,
+      language: socket.data.language,
+      ageRange: socket.data.ageRange,
       email: "",
       contact: "",
       verified: false,
       badges: ["Respectful"],
       reputation: Math.max(0, 100 - session.riskScore),
       roomId: null,
+      joinedAt: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString(),
     });
     await trackJoin(users.get(socket.id));
     queueReconnectUser(socket, code);
@@ -1205,8 +1317,34 @@ io.on("connection", (socket) => {
     if (!user?.roomId) return;
     const text = security.sanitizeText(payload.text, 180);
     if (!text) return;
+    user.lastSeenAt = new Date().toISOString();
     security.rememberChat(user.roomId, { author: user.publicId, text });
-    socket.to(user.roomId).emit("chat-message", { from: publicUser(user), text });
+    socket.to(user.roomId).emit("chat-message", { id: crypto.randomUUID(), from: publicUser(user), text });
+    socket.emit("message-delivered", { at: new Date().toISOString() });
+  });
+
+  socket.on("message-seen", (payload = {}) => {
+    const user = users.get(socket.id);
+    if (!user?.roomId) return;
+    socket.to(user.roomId).emit("message-seen", {
+      messageId: security.sanitizeText(payload.messageId || "", 80),
+      from: publicUser(user),
+      at: new Date().toISOString(),
+    });
+  });
+
+  socket.on("voice-note", (payload = {}) => {
+    const user = users.get(socket.id);
+    if (!user?.roomId || typeof payload.audio !== "string") return;
+    const audio = payload.audio.slice(0, 900000);
+    const mimeType = security.sanitizeText(payload.mimeType || "audio/webm", 40);
+    socket.to(user.roomId).emit("voice-note", {
+      id: crypto.randomUUID(),
+      from: publicUser(user),
+      audio,
+      mimeType,
+      createdAt: new Date().toISOString(),
+    });
   });
 
   socket.on("typing", (payload = {}) => {
@@ -1471,7 +1609,7 @@ initDb()
   .then(() => {
 app.get("/api/walkie/next-channel", (request, response) => {
   const currentFrequency = normalizeWalkieFrequency(request.query?.frequency);
-  const stats = getWalkieStats()
+  const stats = Array.from(walkieChannels.keys()).map((frequency) => getWalkieStats(frequency))
     .filter((item) => !item.locked)
     .filter((item) => item.frequency !== currentFrequency)
     .sort((first, second) => {
@@ -1569,6 +1707,64 @@ app.get("/api/admin/online-gender", (request, response) => {
   });
 });
 
+app.get("/api/admin/live-sessions", requireAdmin, (request, response) => {
+  const sessions = buildLiveSessionRows();
+  const byCountry = sessions.reduce((acc, session) => {
+    const country = session.country || "Unknown";
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+  response.json({
+    total: sessions.length,
+    male: sessions.filter((session) => session.gender === "male").length,
+    female: sessions.filter((session) => session.gender === "female").length,
+    chat: sessions.filter((session) => session.mode === "text").length,
+    video: sessions.filter((session) => session.mode === "video").length,
+    live: sessions.filter((session) => session.live).length,
+    waiting: sessions.filter((session) => session.waiting).length,
+    countries: byCountry,
+    sessions,
+    updatedAt: new Date().toISOString()
+  });
+});
+
+app.post("/api/admin/sessions/:guestSessionId/mute", requireAdmin, (request, response) => {
+  const guestSessionId = security.sanitizeText(request.params.guestSessionId || "", 120);
+  const minutes = Math.max(1, Math.min(1440, Number(request.body?.minutes || 30)));
+  const reason = security.sanitizeText(request.body?.reason || "Admin mute", 160);
+  if (!guestSessionId) return response.status(400).json({ error: "Guest session ID required." });
+  adminMutedGuestSessions.set(guestSessionId, {
+    reason,
+    createdAt: new Date().toISOString(),
+    expiresAt: Date.now() + minutes * 60 * 1000
+  });
+  for (const user of users.values()) {
+    if (user.guestSessionId === guestSessionId) {
+      io.to(user.id).emit("safety-warning", { message: "You have been temporarily muted by admin." });
+    }
+  }
+  response.json({ ok: true });
+});
+
+app.post("/api/admin/sessions/:guestSessionId/ban", requireAdmin, (request, response) => {
+  const guestSessionId = security.sanitizeText(request.params.guestSessionId || "", 120);
+  const minutes = Math.max(5, Math.min(10080, Number(request.body?.minutes || 1440)));
+  const reason = security.sanitizeText(request.body?.reason || "Admin ban", 160);
+  if (!guestSessionId) return response.status(400).json({ error: "Guest session ID required." });
+  adminBannedGuestSessions.set(guestSessionId, {
+    reason,
+    createdAt: new Date().toISOString(),
+    expiresAt: Date.now() + minutes * 60 * 1000
+  });
+  for (const user of users.values()) {
+    if (user.guestSessionId === guestSessionId) {
+      io.to(user.id).emit("banned", { reason: "This guest session has been temporarily banned by admin." });
+      io.sockets.sockets.get(user.id)?.disconnect(true);
+    }
+  }
+  response.json({ ok: true });
+});
+
 app.get("/api/live-stats", (request, response) => {
   const stats = {
     online: 0,
@@ -1593,7 +1789,17 @@ app.get("/api/live-stats", (request, response) => {
     if (country && country.length <= 3) countries.add(country);
   }
 
-  stats.countries = countries.size;
+  if (countries.size === 0) {
+    const recentVisitCountries = new Set(
+      visitRows
+        .filter((visit) => Date.now() - new Date(visit.createdAt).getTime() <= 24 * 60 * 60 * 1000)
+        .map((visit) => String(visit.country || "").trim().toUpperCase())
+        .filter((country) => country && country !== "UNKNOWN")
+    );
+    stats.countries = recentVisitCountries.size;
+  } else {
+    stats.countries = countries.size;
+  }
   response.json({
     ...stats,
     updatedAt: new Date().toISOString()
