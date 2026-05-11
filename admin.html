@@ -824,50 +824,6 @@
 </script>
 <script>
   (function () {
-    const refreshMs = 20000;
-    let lastInputAt = 0;
-
-    function isEditing() {
-      const active = document.activeElement;
-      const tag = active?.tagName?.toLowerCase();
-      const editingField = tag === "input" || tag === "textarea" || tag === "select" || active?.isContentEditable;
-      return editingField || Date.now() - lastInputAt < 8000;
-    }
-
-    function updateRefreshBadge(seconds) {
-      let badge = document.getElementById("adminAutoRefreshBadge");
-      if (!badge) {
-        badge = document.createElement("div");
-        badge.id = "adminAutoRefreshBadge";
-        badge.className = "admin-refresh-badge";
-        document.body.appendChild(badge);
-      }
-      badge.textContent = isEditing() ? "Auto refresh paused" : `Auto refresh ${seconds}s`;
-    }
-
-    document.addEventListener("input", () => {
-      lastInputAt = Date.now();
-    }, true);
-
-    document.addEventListener("DOMContentLoaded", () => {
-      let remaining = Math.round(refreshMs / 1000);
-      updateRefreshBadge(remaining);
-      setInterval(() => {
-        remaining -= 1;
-        if (remaining <= 0) {
-          if (!isEditing()) {
-            location.reload();
-            return;
-          }
-          remaining = Math.round(refreshMs / 1000);
-        }
-        updateRefreshBadge(remaining);
-      }, 1000);
-    });
-  })();
-</script>
-<script>
-  (function () {
     function renderVisitStats(data) {
       let card = document.getElementById("adminVisitStatsCard");
       if (!card) {
