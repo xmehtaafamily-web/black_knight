@@ -6,6 +6,7 @@ const REPORTS_FILE = path.join(__dirname, "reports.json");
 const BANS_FILE = path.join(__dirname, "bans.json");
 const ANALYTICS_FILE = path.join(__dirname, "analytics.json");
 const RADIO_FILE = path.join(__dirname, "radio.json");
+const CAMPAIGNS_FILE = path.join(__dirname, "campaigns.json");
 const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
 
 function readJson(file) {
@@ -68,6 +69,22 @@ async function initDb() {
       male INTEGER NOT NULL DEFAULT 0,
       female INTEGER NOT NULL DEFAULT 0,
       peak_active INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ad_campaigns (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      target_url TEXT NOT NULL,
+      image_url TEXT,
+      title TEXT,
+      weight INTEGER NOT NULL DEFAULT 1,
+      active BOOLEAN NOT NULL DEFAULT TRUE,
+      clicks INTEGER NOT NULL DEFAULT 0,
+      impressions INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
     )
   `);
 }
@@ -338,6 +355,82 @@ async function saveRadioStation(station) {
   return row;
 }
 
+async function listCampaigns() {
+  if (!pool) return readJson(CAMPAIGNS_FILE);
+  const result = await pool.query("SELECT * FROM ad_campaigns ORDER BY created_at DESC");
+  return result.rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    targetUrl: row.target_url,
+    imageUrl: row.image_url || "",
+    title: row.title || "",
+    weight: row.weight || 1,
+    active: row.active,
+    clicks: row.clicks || 0,
+    impressions: row.impressions || 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+async function saveCampaign(campaign) {
+  const now = new Date().toISOString();
+  const row = {
+    id: campaign.id,
+    name: campaign.name,
+    targetUrl: campaign.targetUrl,
+    imageUrl: campaign.imageUrl || "",
+    title: campaign.title || campaign.name,
+    weight: Math.max(1, Number(campaign.weight || 1)),
+    active: campaign.active !== false,
+    clicks: Number(campaign.clicks || 0),
+    impressions: Number(campaign.impressions || 0),
+    createdAt: campaign.createdAt || now,
+    updatedAt: now,
+  };
+
+  if (!pool) {
+    const rows = await listCampaigns();
+    writeJson(CAMPAIGNS_FILE, [row, ...rows.filter((item) => item.id !== row.id)].slice(0, 200));
+    return row;
+  }
+
+  await pool.query(
+    `
+      INSERT INTO ad_campaigns (id, name, target_url, image_url, title, weight, active, clicks, impressions, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (id)
+      DO UPDATE SET name = $2, target_url = $3, image_url = $4, title = $5, weight = $6, active = $7, updated_at = $11
+    `,
+    [row.id, row.name, row.targetUrl, row.imageUrl, row.title, row.weight, row.active, row.clicks, row.impressions, row.createdAt, row.updatedAt],
+  );
+  return row;
+}
+
+async function deleteCampaign(id) {
+  if (!pool) {
+    const rows = await listCampaigns();
+    writeJson(CAMPAIGNS_FILE, rows.filter((item) => item.id !== id));
+    return;
+  }
+  await pool.query("DELETE FROM ad_campaigns WHERE id = $1", [id]);
+}
+
+async function trackCampaignMetric(id, metric) {
+  if (!["clicks", "impressions"].includes(metric)) return;
+  if (!pool) {
+    const rows = await listCampaigns();
+    const row = rows.find((item) => item.id === id);
+    if (row) row[metric] = Number(row[metric] || 0) + 1;
+    writeJson(CAMPAIGNS_FILE, rows);
+    return;
+  }
+  await pool.query(`UPDATE ad_campaigns SET ${metric} = ${metric} + 1, updated_at = $2 WHERE id = $1`, [
+    id,
+    new Date().toISOString(),
+  ]);
+}
+
 module.exports = {
   initDb,
   listReports,
@@ -350,5 +443,9 @@ module.exports = {
   listHourlyAnalytics,
   listRadioStations,
   saveRadioStation,
+  listCampaigns,
+  saveCampaign,
+  deleteCampaign,
+  trackCampaignMetric,
   usingPostgres: Boolean(pool),
 };

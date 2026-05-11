@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black Knight Campaign Manager</title>
+    <link rel="icon" type="image/png" href="./assets/black-knight-logo.png" />
+    <link rel="stylesheet" href="./styles.css?v=campaign-manager-1" />
+  </head>
+  <body class="admin-feedback-page">
+    <main class="admin-feedback-shell">
+      <header class="admin-feedback-header">
+        <div>
+          <p>Black Knight Admin</p>
+          <h1>Campaign Manager</h1>
+        </div>
+        <div>
+          <a href="/admin.html">Dashboard</a>
+          <button id="refreshBtn" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section class="feedback-card">
+        <p class="feedback-kicker">Add banner campaign</p>
+        <form id="campaignForm" class="feedback-form">
+          <input id="campaignId" type="hidden" />
+          <label>
+            Campaign name
+            <input id="campaignName" type="text" maxlength="80" placeholder="NordPass" required />
+          </label>
+          <label>
+            Banner title
+            <input id="campaignTitle" type="text" maxlength="120" placeholder="Securely store and autofill passwords" />
+          </label>
+          <label>
+            Target URL
+            <input id="campaignTargetUrl" type="url" placeholder="https://example.com/affiliate-link" required />
+          </label>
+          <label>
+            Banner image URL
+            <input id="campaignImageUrl" type="text" placeholder="/assets/nordpass.webp" />
+          </label>
+          <label>
+            Rotation weight
+            <input id="campaignWeight" type="number" min="1" max="20" value="1" />
+          </label>
+          <label class="check-row">
+            <input id="campaignActive" type="checkbox" checked />
+            <span>Active</span>
+          </label>
+          <button type="submit">Save campaign</button>
+          <p id="campaignStatus" class="feedback-status"></p>
+        </form>
+      </section>
+
+      <section id="campaignList" class="admin-feedback-list" aria-live="polite"></section>
+    </main>
+
+    <script>
+      const form = document.querySelector("#campaignForm");
+      const statusText = document.querySelector("#campaignStatus");
+      const list = document.querySelector("#campaignList");
+      const refreshBtn = document.querySelector("#refreshBtn");
+      const fields = {
+        id: document.querySelector("#campaignId"),
+        name: document.querySelector("#campaignName"),
+        title: document.querySelector("#campaignTitle"),
+        targetUrl: document.querySelector("#campaignTargetUrl"),
+        imageUrl: document.querySelector("#campaignImageUrl"),
+        weight: document.querySelector("#campaignWeight"),
+        active: document.querySelector("#campaignActive"),
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      async function loadCampaigns() {
+        const response = await fetch("/api/admin/campaigns", { cache: "no-store" });
+        if (response.status === 401) {
+          list.innerHTML = '<article class="admin-feedback-empty">Open admin dashboard and login first.</article>';
+          return;
+        }
+        const campaigns = await response.json();
+        list.innerHTML = campaigns.length
+          ? campaigns
+              .map(
+                (campaign) => `
+                  <article class="admin-feedback-item">
+                    <div>
+                      <span>${escapeHtml(campaign.name)}</span>
+                      <small>${campaign.active ? "Active" : "Paused"} · Weight ${campaign.weight || 1}</small>
+                    </div>
+                    <p>${escapeHtml(campaign.title || campaign.name)}</p>
+                    ${campaign.imageUrl ? `<img class="campaign-preview" src="${escapeHtml(campaign.imageUrl)}" alt="${escapeHtml(campaign.name)} banner" loading="lazy" />` : ""}
+                    <strong>Clicks: ${campaign.clicks || 0} · Impressions: ${campaign.impressions || 0}</strong>
+                    <div>
+                      <button type="button" data-action="edit" data-id="${escapeHtml(campaign.id)}">Edit</button>
+                      <button type="button" data-action="delete" data-id="${escapeHtml(campaign.id)}">Delete</button>
+                    </div>
+                  </article>
+                `,
+              )
+              .join("")
+          : '<article class="admin-feedback-empty">No campaigns yet.</article>';
+        window.__campaigns = campaigns;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        statusText.textContent = "Saving...";
+        const response = await fetch("/api/admin/campaigns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: fields.id.value || undefined,
+            name: fields.name.value,
+            title: fields.title.value,
+            targetUrl: fields.targetUrl.value,
+            imageUrl: fields.imageUrl.value,
+            weight: Number(fields.weight.value || 1),
+            active: fields.active.checked,
+          }),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          statusText.textContent = data.error || "Campaign save failed.";
+          return;
+        }
+        form.reset();
+        fields.active.checked = true;
+        fields.weight.value = 1;
+        fields.id.value = "";
+        statusText.textContent = "Campaign saved.";
+        loadCampaigns();
+      });
+
+      list.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const campaign = window.__campaigns?.find((item) => item.id === button.dataset.id);
+        if (!campaign) return;
+
+        if (button.dataset.action === "edit") {
+          fields.id.value = campaign.id;
+          fields.name.value = campaign.name;
+          fields.title.value = campaign.title || "";
+          fields.targetUrl.value = campaign.targetUrl;
+          fields.imageUrl.value = campaign.imageUrl || "";
+          fields.weight.value = campaign.weight || 1;
+          fields.active.checked = campaign.active !== false;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        if (button.dataset.action === "delete" && confirm(`Delete ${campaign.name}?`)) {
+          await fetch(`/api/admin/campaigns/${encodeURIComponent(campaign.id)}`, { method: "DELETE" });
+          loadCampaigns();
+        }
+      });
+
+      refreshBtn.addEventListener("click", loadCampaigns);
+      loadCampaigns();
+    </script>
+  </body>
+</html>

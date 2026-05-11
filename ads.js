@@ -29,9 +29,40 @@ window.BlackKnightAds = {
   },
 };
 
-function renderBlackKnightAds() {
+async function loadServerCampaigns() {
+  try {
+    const response = await fetch("/api/campaigns", { cache: "no-store" });
+    if (!response.ok) return [];
+    const campaigns = await response.json();
+    return campaigns
+      .filter((campaign) => campaign.targetUrl)
+      .flatMap((campaign) => {
+        const weight = Math.max(1, Number(campaign.weight || 1));
+        return Array.from({ length: weight }, () => ({
+          id: campaign.id,
+          href: campaign.targetUrl,
+          title: campaign.title || campaign.name,
+          image: campaign.imageUrl || "",
+        }));
+      });
+  } catch (error) {
+    return [];
+  }
+}
+
+function trackCampaignMetric(campaignId, metric) {
+  if (!campaignId) return;
+  fetch(`/api/campaigns/${encodeURIComponent(campaignId)}/${metric}`, {
+    method: "POST",
+    keepalive: true,
+  }).catch(() => {});
+}
+
+async function renderBlackKnightAds() {
   const config = window.BlackKnightAds;
   const slots = document.querySelectorAll("[data-ad-slot]");
+  const serverOffers = await loadServerCampaigns();
+  window.BlackKnightServerCampaigns = serverOffers;
 
   if (config.provider === "adsense" && config.adsense.enabled && !document.querySelector("script[data-adsense]")) {
     const script = document.createElement("script");
@@ -62,17 +93,18 @@ function renderBlackKnightAds() {
       return;
     }
 
-    const offers = config.affiliate.offers?.length ? config.affiliate.offers : [config.affiliate];
+    const offers = serverOffers.length ? serverOffers : config.affiliate.offers?.length ? config.affiliate.offers : [config.affiliate];
     const offer = offers[Math.floor(Math.random() * offers.length)];
+    trackCampaignMetric(offer.id, "impression");
 
     slot.innerHTML = offer.image
       ? `
-        <a class="ad-link ad-image-link" href="${offer.href}" target="_blank" rel="sponsored noopener">
+        <a class="ad-link ad-image-link" href="${offer.href}" target="_blank" rel="sponsored noopener" data-campaign-id="${offer.id || ""}">
           <img src="${offer.image}" alt="${offer.title}" loading="lazy" />
         </a>
       `
       : `
-        <a class="ad-link" href="${offer.href}" target="_blank" rel="sponsored noopener">
+        <a class="ad-link" href="${offer.href}" target="_blank" rel="sponsored noopener" data-campaign-id="${offer.id || ""}">
           <span>${config.affiliate.label}</span>
           <strong>${offer.title}</strong>
         </a>
@@ -81,3 +113,8 @@ function renderBlackKnightAds() {
 }
 
 document.addEventListener("DOMContentLoaded", renderBlackKnightAds);
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("[data-campaign-id]");
+  if (!link) return;
+  trackCampaignMetric(link.dataset.campaignId, "click");
+});

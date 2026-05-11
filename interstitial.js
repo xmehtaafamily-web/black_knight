@@ -53,8 +53,23 @@
 
   function buildOverlay() {
     const currentIndex = Number(localStorage.getItem(campaignIndexKey) || 0);
-    const campaign = sponsorCampaigns[currentIndex % sponsorCampaigns.length];
-    localStorage.setItem(campaignIndexKey, String((currentIndex + 1) % sponsorCampaigns.length));
+    const liveCampaigns = window.BlackKnightServerCampaigns?.length
+      ? window.BlackKnightServerCampaigns.map((offer) => ({
+          name: offer.title || "Sponsor",
+          url: offer.href,
+          image: offer.image,
+          title: offer.title || "Sponsored offer",
+          id: offer.id || "",
+        }))
+      : sponsorCampaigns;
+    const campaign = liveCampaigns[currentIndex % liveCampaigns.length];
+    localStorage.setItem(campaignIndexKey, String((currentIndex + 1) % liveCampaigns.length));
+    if (campaign.id) {
+      fetch(`/api/campaigns/${encodeURIComponent(campaign.id)}/impression`, {
+        method: "POST",
+        keepalive: true,
+      }).catch(() => {});
+    }
     const media = campaign.html
       ? `<iframe class="bk-interstitial-frame" src="${campaign.html}" title="${campaign.name} sponsored offer" loading="lazy" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"></iframe>`
       : `<img src="${campaign.image}" alt="${campaign.name} sponsored offer" onerror="this.closest('.bk-interstitial-link').classList.add('bk-interstitial-fallback'); this.remove();">`;
@@ -64,7 +79,7 @@
       <div class="bk-interstitial-card">
         <button class="bk-interstitial-close" type="button" aria-label="Close ad" hidden>×</button>
         <p class="bk-interstitial-kicker">Sponsored · ${campaign.name}</p>
-        <a class="bk-interstitial-link" href="${campaign.url}" target="_blank" rel="nofollow sponsored noopener">
+        <a class="bk-interstitial-link" href="${campaign.url}" target="_blank" rel="nofollow sponsored noopener" data-campaign-id="${campaign.id || ""}">
           ${media}
         </a>
         <h2>${campaign.title}</h2>
@@ -73,6 +88,13 @@
       </div>
     `;
     document.body.appendChild(overlay);
+    overlay.querySelector("[data-campaign-id]")?.addEventListener("click", () => {
+      if (!campaign.id) return;
+      fetch(`/api/campaigns/${encodeURIComponent(campaign.id)}/click`, {
+        method: "POST",
+        keepalive: true,
+      }).catch(() => {});
+    });
     return overlay;
   }
 

@@ -1,0 +1,54 @@
+[
+  {
+    "id": "nordpass",
+    "name": "NordPass",
+    "targetUrl": "https://nordpass.com/",
+    "imageUrl": "/assets/nordpass.webp",
+    "title": "Securely store and autofill passwords",
+    "weight": 2,
+    "active": true,
+    "clicks": 0,
+    "impressions": 0,
+    "createdAt": "2026-05-11T00:00:00.000Z",
+    "updatedAt": "2026-05-11T00:00:00.000Z"
+  },
+  {
+    "id": "alibaba",
+    "name": "Alibaba",
+    "targetUrl": "https://offer.alibaba.com/",
+    "imageUrl": "/assets/alibaba.jpg",
+    "title": "Explore global wholesale deals",
+    "weight": 2,
+    "active": true,
+    "clicks": 0,
+    "impressions": 0,
+    "createdAt": "2026-05-11T00:00:00.000Z",
+    "updatedAt": "2026-05-11T00:00:00.000Z"
+  },
+  {
+    "id": "ulike",
+    "name": "Ulike",
+    "targetUrl": "https://www.ulike.com",
+    "imageUrl": "/assets/ulike.jpg",
+    "title": "Future beauty made easy",
+    "weight": 1,
+    "active": true,
+    "clicks": 0,
+    "impressions": 0,
+    "createdAt": "2026-05-11T00:00:00.000Z",
+    "updatedAt": "2026-05-11T00:00:00.000Z"
+  },
+  {
+    "id": "apple-music",
+    "name": "Apple Music",
+    "targetUrl": "https://bywiola.com/c/78tuvzaw8k1895f3294b0267b86f6e/",
+    "imageUrl": "/assets/banner-india-ppp_300x250_2024-01-24.aa31.png",
+    "title": "Listen to millions of songs",
+    "weight": 1,
+    "active": true,
+    "clicks": 0,
+    "impressions": 0,
+    "createdAt": "2026-05-11T00:00:00.000Z",
+    "updatedAt": "2026-05-11T00:00:00.000Z"
+  }
+]

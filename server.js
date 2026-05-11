@@ -16,6 +16,10 @@ const {
   listHourlyAnalytics,
   listRadioStations,
   saveRadioStation,
+  listCampaigns,
+  saveCampaign,
+  deleteCampaign,
+  trackCampaignMetric,
   usingPostgres,
 } = require("./db");
 const security = require("./security");
@@ -1616,6 +1620,67 @@ app.post("/api/feedback", (request, response) => {
   });
 
   if (feedbackItems.length > 200) feedbackItems.length = 200;
+  response.json({ ok: true });
+});
+
+function normalizeCampaignUrl(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^https?:\/\/[^\s"'<>]+$/i);
+  return match ? match[0] : "";
+}
+
+function normalizeAssetUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (text.startsWith("/assets/") || text.startsWith("./assets/")) return text.replace(/^\./, "");
+  return normalizeCampaignUrl(text);
+}
+
+app.get("/api/campaigns", async (request, response) => {
+  const rows = await listCampaigns();
+  response.json(rows.filter((campaign) => campaign.active !== false));
+});
+
+app.post("/api/campaigns/:id/impression", async (request, response) => {
+  await trackCampaignMetric(String(request.params.id || ""), "impressions");
+  response.json({ ok: true });
+});
+
+app.post("/api/campaigns/:id/click", async (request, response) => {
+  await trackCampaignMetric(String(request.params.id || ""), "clicks");
+  response.json({ ok: true });
+});
+
+app.get("/api/admin/campaigns", requireAdmin, async (request, response) => {
+  response.json(await listCampaigns());
+});
+
+app.post("/api/admin/campaigns", requireAdmin, async (request, response) => {
+  const name = security.sanitizeText(request.body?.name || "", 80);
+  const title = security.sanitizeText(request.body?.title || name, 120);
+  const targetUrl = normalizeCampaignUrl(request.body?.targetUrl);
+  const imageUrl = normalizeAssetUrl(request.body?.imageUrl);
+  const id = security.sanitizeText(request.body?.id || crypto.randomUUID(), 80);
+
+  if (!name || !targetUrl) {
+    response.status(400).json({ error: "Campaign name and target URL are required." });
+    return;
+  }
+
+  const campaign = await saveCampaign({
+    id,
+    name,
+    title,
+    targetUrl,
+    imageUrl,
+    weight: Number(request.body?.weight || 1),
+    active: request.body?.active !== false,
+  });
+  response.json(campaign);
+});
+
+app.delete("/api/admin/campaigns/:id", requireAdmin, async (request, response) => {
+  await deleteCampaign(String(request.params.id || ""));
   response.json({ ok: true });
 });
 
