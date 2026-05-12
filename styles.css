@@ -5192,3 +5192,9 @@ select:focus {
     font-size: 1rem;
   }
 }
+/* Hide mic controls in video chat while keeping audio enabled in the call. */
+body:has(#remoteVideo) #micBtn,
+body:has(#remoteVideo) .wa-call-btn[data-action="mic"],
+body:has(#remoteVideo) button[aria-label="Microphone"] {
+  display: none !important;
+}

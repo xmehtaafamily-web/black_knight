@@ -12,10 +12,15 @@ const voiceStatus = document.querySelector("#voiceStatus");
 const form = document.querySelector("#walkieForm");
 const input = document.querySelector("#walkieInput");
 const talkBtn = document.querySelector("#talkBtn");
+const lockFrequencyInput = document.querySelector("#lockFrequencyInput");
+const lockFrequencyBtn = document.querySelector("#lockFrequencyBtn");
 
 let activeFrequency = "";
 let localAudioStream = null;
 let activeRadioLock = null;
+let activePrivateLock = null;
+let activeFrequencyOwner = false;
+let micEnabled = false;
 let audioRecorder = null;
 let audioChunks = [];
 let voiceStatusTimer = null;
@@ -152,7 +157,7 @@ function renderFrequencies(rows) {
           <span>${item.frequency} FM</span>
           <strong>${item.locked ? item.radio?.name || "Radio locked" : `${item.activeUsers}/${item.limit}`}</strong>
           <small>M ${item.male || 0} · F ${item.female || 0}</small>
-          ${item.locked ? "<em>Radio · Chat only</em>" : ""}
+          ${item.locked ? "<em>Radio · Chat only</em>" : item.privateLocked ? "<em>Private locked</em>" : ""}
         </button>
       `,
     )
@@ -171,6 +176,7 @@ function renderRadioLock(radio) {
       walkieRadioAudio.classList.remove("visible");
     }
     talkBtn.disabled = !activeFrequency;
+    talkBtn.textContent = micEnabled ? "Mic on" : "Mic off";
     return;
   }
 
@@ -186,6 +192,7 @@ function renderRadioLock(radio) {
   `;
   talkBtn.disabled = true;
   talkBtn.textContent = "Radio only";
+  setMicEnabled(false);
 
   if (walkieRadioAudio) {
     if (radio.streamUrl) {
@@ -267,7 +274,7 @@ async function ensureMic() {
     localAudioStream.getAudioTracks().forEach((track) => {
       track.enabled = false;
     });
-    showVoiceStatus("Microphone enabled. Hold to talk.");
+    showVoiceStatus("Microphone ready. Tap Mic on to speak.");
     return true;
   } catch (error) {
     showVoiceStatus("Microphone permission is required for voice.");
@@ -346,12 +353,11 @@ function closeAllWalkiePeers() {
 async function joinFrequency(frequency) {
   const profile = requireProfile();
   if (!profile) return;
-  const micReady = await ensureMic();
-  if (!micReady) return;
   closeAllWalkiePeers();
+  setMicEnabled(false);
   activeFrequency = frequency;
   frequencyInput.value = frequency;
-  socket.emit("join-walkie", { frequency, ...profile });
+  socket.emit("join-walkie", { frequency, lockFrequency: Boolean(lockFrequencyInput?.checked), ...profile });
 }
 
 frequencyGrid.addEventListener(
@@ -381,49 +387,53 @@ frequencyForm.addEventListener(
   true,
 );
 
-async function startTalking() {
+function updateLockButton() {
+  if (!lockFrequencyBtn) return;
+  const owned = Boolean(activePrivateLock?.owned);
+  lockFrequencyBtn.disabled = !activeFrequency || Boolean(activeRadioLock) || (!activeFrequencyOwner && !owned);
+  lockFrequencyBtn.textContent = owned ? "Unlock frequency" : activePrivateLock ? "Frequency locked" : "Lock frequency";
+}
+
+function setMicEnabled(enabled) {
+  micEnabled = Boolean(enabled);
+  localAudioStream?.getAudioTracks().forEach((track) => {
+    track.enabled = micEnabled;
+  });
+  talkBtn?.classList.toggle("active", micEnabled);
+  if (talkBtn && !activeRadioLock) {
+    talkBtn.textContent = micEnabled ? "Mic on" : "Mic off";
+    talkBtn.dataset.state = micEnabled ? "on" : "off";
+    talkBtn.setAttribute("aria-pressed", String(micEnabled));
+    talkBtn.title = micEnabled ? "Your microphone is on" : "Your microphone is off";
+  }
+  if (activeFrequency) socket.emit("walkie-voice", { speaking: micEnabled });
+}
+
+async function toggleMic() {
   if (activeRadioLock) {
     showVoiceStatus("Voice is disabled on radio channels. Use chat instead.");
     return;
   }
   if (!activeFrequency || !(await ensureMic())) return;
-  localAudioStream.getAudioTracks().forEach((track) => {
-    track.enabled = true;
-  });
-  talkBtn.classList.add("active");
-  talkBtn.textContent = "Talking...";
-  socket.emit("walkie-voice", { speaking: true });
+  setMicEnabled(!micEnabled);
+  showVoiceStatus(micEnabled ? "Mic is on. Tap again to mute." : "Mic is off.");
 }
 
-function stopTalking() {
-  localAudioStream?.getAudioTracks().forEach((track) => {
-    track.enabled = false;
-  });
-  talkBtn.classList.remove("active");
-  talkBtn.textContent = "Hold to talk";
-  socket.emit("walkie-voice", { speaking: false });
-}
+talkBtn.addEventListener("click", async (event) => {
+  event.preventDefault();
+  await toggleMic();
+});
 
 talkBtn.addEventListener("pointerdown", (event) => {
   event.preventDefault();
-  startTalking();
-});
-/*
-talkBtn.addEventListener("mousedown", startTalking);
-talkBtn.addEventListener("touchstart", (event) => {
-  event.preventDefault();
-  startTalking();
-});
-["mouseup", "mouseleave", "touchend", "touchcancel"].forEach((eventName) => {
-  talkBtn.addEventListener(eventName, stopTalking);
-});
-*/
-["pointerup", "pointerleave", "pointercancel"].forEach((eventName) => {
-  talkBtn.addEventListener(eventName, stopTalking);
 });
 
-talkBtn.addEventListener("click", async () => {
-  if (!localAudioStream) await ensureMic();
+lockFrequencyBtn?.addEventListener("click", () => {
+  if (!activeFrequency || activeRadioLock || (activePrivateLock && !activePrivateLock.owned)) return;
+  socket.emit("walkie-lock-frequency", { locked: !activePrivateLock?.owned });
+});
+
+document.addEventListener("click", async () => {
   if (!playbackContext) {
     playbackContext = new AudioContext({ sampleRate: 16000 });
     await playbackContext.resume().catch(() => {});
@@ -433,11 +443,14 @@ talkBtn.addEventListener("click", async () => {
 socket.on("walkie-joined", (payload) => {
   activeFrequency = payload.frequency;
   selfPeerId = payload.peerId || "";
+  activeFrequencyOwner = Boolean(payload.frequencyOwner);
   statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
+  activePrivateLock = payload.privateLocked ? { owned: Boolean(payload.privateLockOwned || activePrivateLock?.owned) } : null;
   renderRadioLock(payload.locked ? payload.radio : null);
   talkBtn.disabled = Boolean(payload.locked);
+  updateLockButton();
   messages.innerHTML = '<div class="empty-state">Channel joined. Typed messages will appear here.</div>';
-  showVoiceStatus(payload.locked ? `${payload.radio?.name || "Radio"} locked channel joined` : `Joined ${payload.frequency} FM`);
+  showVoiceStatus(payload.locked ? `${payload.radio?.name || "Radio"} locked channel joined` : payload.privateLocked ? `Joined locked ${payload.frequency} FM` : `Joined ${payload.frequency} FM`);
   if (!payload.locked) (payload.peers || []).forEach((peerId) => createWalkiePeer(peerId, true));
   loadFrequencies();
 });
@@ -455,6 +468,8 @@ socket.on("walkie-peer-left", (payload) => {
 socket.on("walkie-presence", (payload) => {
   if (payload.frequency === activeFrequency) {
     statusText.textContent = `${payload.frequency} FM · ${payload.activeUsers}/${payload.limit} · M ${payload.male || 0} · F ${payload.female || 0}`;
+    activePrivateLock = payload.privateLocked ? { owned: Boolean(payload.privateLockOwned || activePrivateLock?.owned) } : null;
+    updateLockButton();
   }
   loadFrequencies();
 });
@@ -516,6 +531,23 @@ socket.on("walkie-webrtc-ice", async (payload) => {
 
 socket.on("walkie-error", (payload) => {
   addMessage("System", payload.message || "Walkie channel error.");
+});
+
+socket.on("walkie-lock-updated", (payload) => {
+  if (payload.frequency !== activeFrequency) return;
+  activeFrequencyOwner = Boolean(payload.frequencyOwner || activeFrequencyOwner);
+  activePrivateLock = payload.privateLocked ? { owned: Boolean(payload.privateLockOwned) } : null;
+  updateLockButton();
+  showVoiceStatus(
+    payload.privateLocked
+      ? payload.privateLockOwned
+        ? "You control this locked frequency."
+        : "Frequency locked. Only current users can stay."
+      : payload.frequencyOwner
+        ? "You now control this frequency."
+        : "Frequency unlocked.",
+  );
+  loadFrequencies();
 });
 
 loadRtcConfig().then(loadFrequencies);

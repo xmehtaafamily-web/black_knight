@@ -115,6 +115,8 @@ const roomMessages = new Map();
 const confessions = [];
 const walkieChannels = new Map();
 const walkieProfiles = new Map();
+const walkieFrequencyOwners = new Map();
+const userLockedFrequencies = new Map();
 const adminMutedGuestSessions = new Map();
 const adminBannedGuestSessions = new Map();
 let visitRows = [];
@@ -354,8 +356,13 @@ function getRadioLock(frequency) {
   return radioLockedFrequencies.get(frequency) || null;
 }
 
+function getUserFrequencyLock(frequency) {
+  return userLockedFrequencies.get(frequency) || null;
+}
+
 function getWalkieStats(frequency) {
   const members = walkieChannels.get(frequency) || new Set();
+  const userLock = getUserFrequencyLock(frequency);
   let male = 0;
   let female = 0;
   for (const socketId of members) {
@@ -371,7 +378,42 @@ function getWalkieStats(frequency) {
     limit: 50,
     locked: Boolean(getRadioLock(frequency)),
     radio: getRadioLock(frequency),
+    privateLocked: Boolean(userLock),
   };
+}
+
+function emitWalkieOwnershipState(frequency) {
+  const members = walkieChannels.get(frequency) || new Set();
+  const stats = getWalkieStats(frequency);
+  members.forEach((memberSocketId) => {
+    io.to(memberSocketId).emit("walkie-lock-updated", {
+      ...stats,
+      privateLockOwned: getUserFrequencyLock(frequency)?.ownerSocketId === memberSocketId,
+      frequencyOwner: walkieFrequencyOwners.get(frequency) === memberSocketId,
+    });
+  });
+  io.to(`walkie:${frequency}`).emit("walkie-presence", stats);
+}
+
+function transferWalkiePowerIfNeeded(frequency, leavingSocketId) {
+  const members = walkieChannels.get(frequency) || new Set();
+  if (members.size === 0) {
+    walkieFrequencyOwners.delete(frequency);
+    if (getUserFrequencyLock(frequency)?.ownerSocketId === leavingSocketId) userLockedFrequencies.delete(frequency);
+    return;
+  }
+
+  if (walkieFrequencyOwners.get(frequency) === leavingSocketId || !walkieFrequencyOwners.has(frequency)) {
+    const nextOwnerSocketId = Array.from(members)[0];
+    walkieFrequencyOwners.set(frequency, nextOwnerSocketId);
+    if (getUserFrequencyLock(frequency)?.ownerSocketId === leavingSocketId) {
+      userLockedFrequencies.set(frequency, {
+        ownerSocketId: nextOwnerSocketId,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    emitWalkieOwnershipState(frequency);
+  }
 }
 
 app.set("trust proxy", true);
@@ -1160,7 +1202,6 @@ io.on("connection", (socket) => {
       join: ["start", 8, 60000],
       "join-reconnect": ["reconnect", 6, 60000],
       "chat-message": ["message", 24, 10000],
-      "voice-note": ["voiceNote", 8, 60000],
       typing: ["typing", 40, 10000],
       "message-seen": ["seen", 60, 10000],
       next: ["skip", 12, 60000],
@@ -1184,7 +1225,7 @@ io.on("connection", (socket) => {
     }
     if (
       getAdminGuestAction(adminMutedGuestSessions, session.id) &&
-      ["chat-message", "public-room-message", "walkie-message", "walkie-audio", "walkie-live-audio", "voice-note"].includes(eventName)
+      ["chat-message", "public-room-message", "walkie-message", "walkie-audio", "walkie-live-audio"].includes(eventName)
     ) {
       socket.emit("safety-warning", { message: "This guest session is temporarily muted by admin." });
       return;
@@ -1333,20 +1374,6 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("voice-note", (payload = {}) => {
-    const user = users.get(socket.id);
-    if (!user?.roomId || typeof payload.audio !== "string") return;
-    const audio = payload.audio.slice(0, 900000);
-    const mimeType = security.sanitizeText(payload.mimeType || "audio/webm", 40);
-    socket.to(user.roomId).emit("voice-note", {
-      id: crypto.randomUUID(),
-      from: publicUser(user),
-      audio,
-      mimeType,
-      createdAt: new Date().toISOString(),
-    });
-  });
-
   socket.on("typing", (payload = {}) => {
     const user = users.get(socket.id);
     if (!user?.roomId) return;
@@ -1481,6 +1508,12 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const existingUserLock = getUserFrequencyLock(frequency);
+    if (existingUserLock && existingUserLock.ownerSocketId !== socket.id) {
+      socket.emit("walkie-error", { message: "This frequency is locked by the first user. Choose another frequency." });
+      return;
+    }
+
     const usersOnFrequency = walkieChannels.get(frequency) || new Set();
     if (!usersOnFrequency.has(socket.id) && usersOnFrequency.size >= 50) {
       socket.emit("walkie-error", { message: "This frequency is full. Maximum 50 users allowed." });
@@ -1490,8 +1523,21 @@ io.on("connection", (socket) => {
     for (const [channel, members] of walkieChannels.entries()) {
       if (members.delete(socket.id)) {
         socket.leave(`walkie:${channel}`);
+        transferWalkiePowerIfNeeded(channel, socket.id);
         io.to(`walkie:${channel}`).emit("walkie-presence", getWalkieStats(channel));
       }
+    }
+
+    const isFirstOnFrequency = usersOnFrequency.size === 0;
+    if (!walkieFrequencyOwners.has(frequency) || isFirstOnFrequency) {
+      walkieFrequencyOwners.set(frequency, socket.id);
+    }
+
+    if (!getRadioLock(frequency) && payload.lockFrequency && walkieFrequencyOwners.get(frequency) === socket.id) {
+      userLockedFrequencies.set(frequency, {
+        ownerSocketId: socket.id,
+        createdAt: new Date().toISOString(),
+      });
     }
 
     walkieProfiles.set(socket.id, { name, gender });
@@ -1500,12 +1546,56 @@ io.on("connection", (socket) => {
     socket.join(`walkie:${frequency}`);
     socket.data.walkieFrequency = frequency;
     const peers = Array.from(usersOnFrequency).filter((socketId) => socketId !== socket.id);
-    socket.emit("walkie-joined", { ...getWalkieStats(frequency), peerId: socket.id, peers });
+    const stats = getWalkieStats(frequency);
+    socket.emit("walkie-joined", {
+      ...stats,
+      privateLockOwned: getUserFrequencyLock(frequency)?.ownerSocketId === socket.id,
+      frequencyOwner: walkieFrequencyOwners.get(frequency) === socket.id,
+      peerId: socket.id,
+      peers,
+    });
     socket.to(`walkie:${frequency}`).emit("walkie-peer-joined", {
       peerId: socket.id,
       profile: { name, gender },
     });
     io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
+  });
+
+  socket.on("walkie-lock-frequency", (payload = {}) => {
+    const frequency = socket.data.walkieFrequency;
+    if (!frequency || getRadioLock(frequency)) return;
+
+    const members = walkieChannels.get(frequency) || new Set();
+    if (!members.has(socket.id)) return;
+    if (walkieFrequencyOwners.get(frequency) !== socket.id) {
+      socket.emit("walkie-error", { message: "Only the first user on this frequency can lock it." });
+      return;
+    }
+
+    const currentLock = getUserFrequencyLock(frequency);
+    if (currentLock && currentLock.ownerSocketId !== socket.id) {
+      socket.emit("walkie-error", { message: "Only the first user can unlock this frequency." });
+      return;
+    }
+
+    if (payload.locked === false) {
+      userLockedFrequencies.delete(frequency);
+    } else if (!currentLock) {
+      userLockedFrequencies.set(frequency, {
+        ownerSocketId: socket.id,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    const stats = getWalkieStats(frequency);
+    members.forEach((memberSocketId) => {
+      io.to(memberSocketId).emit("walkie-lock-updated", {
+        ...stats,
+        privateLockOwned: getUserFrequencyLock(frequency)?.ownerSocketId === memberSocketId,
+        frequencyOwner: walkieFrequencyOwners.get(frequency) === memberSocketId,
+      });
+    });
+    io.to(`walkie:${frequency}`).emit("walkie-presence", stats);
   });
 
   socket.on("walkie-message", (payload = {}) => {
@@ -1592,6 +1682,7 @@ io.on("connection", (socket) => {
     for (const [frequency, members] of walkieChannels.entries()) {
       if (members.delete(socket.id)) {
         socket.to(`walkie:${frequency}`).emit("walkie-peer-left", { peerId: socket.id });
+        transferWalkiePowerIfNeeded(frequency, socket.id);
         io.to(`walkie:${frequency}`).emit("walkie-presence", getWalkieStats(frequency));
       }
     }

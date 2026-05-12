@@ -778,8 +778,6 @@ window.addSystemMessage = (text) => addMessage("System", text);
 
 (function addPremiumChatAndVideoControls() {
   let lastOutgoingMessageStatus = null;
-  let voiceRecorder = null;
-  let voiceChunks = [];
   let usingBackCamera = false;
   let networkTimer = null;
 
@@ -802,70 +800,6 @@ window.addSystemMessage = (text) => addMessage("System", text);
       chatForm.insertAdjacentElement("beforebegin", lastOutgoingMessageStatus);
     }
     lastOutgoingMessageStatus.textContent = text;
-  }
-
-  function addVoiceMessage(author, audio, mimeType, own = false) {
-    if (messages.querySelector(".empty-state")) messages.innerHTML = "";
-    const node = document.createElement("div");
-    node.className = `message ${own ? "mine" : ""}`;
-    const label = document.createElement("span");
-    label.textContent = author;
-    const player = document.createElement("audio");
-    player.controls = true;
-    player.preload = "metadata";
-    player.src = audio;
-    player.type = mimeType || "audio/webm";
-    node.append(label, player);
-    messages.append(node);
-    messages.scrollTop = messages.scrollHeight;
-  }
-
-  function createVoiceButton() {
-    if (!chatForm || document.querySelector("#voiceNoteBtn")) return;
-    const button = document.createElement("button");
-    button.id = "voiceNoteBtn";
-    button.type = "button";
-    button.className = "voice-note-btn";
-    button.textContent = "Voice";
-    chatForm.insertBefore(button, messageInput?.nextSibling || null);
-
-    button.addEventListener("click", async () => {
-      if (!currentMatch) {
-        setSystemMessage("Wait for a match before sending a voice note.");
-        return;
-      }
-      if (voiceRecorder?.state === "recording") {
-        voiceRecorder.stop();
-        button.classList.remove("recording");
-        button.textContent = "Voice";
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        voiceChunks = [];
-        voiceRecorder = new MediaRecorder(stream);
-        voiceRecorder.ondataavailable = (event) => {
-          if (event.data?.size) voiceChunks.push(event.data);
-        };
-        voiceRecorder.onstop = () => {
-          const blob = new Blob(voiceChunks, { type: voiceRecorder.mimeType || "audio/webm" });
-          stream.getTracks().forEach((track) => track.stop());
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const audio = String(reader.result || "");
-            addVoiceMessage(currentUser?.name || "You", audio, blob.type, true);
-            socket.emit("voice-note", { audio, mimeType: blob.type });
-            addChatStatus("Voice note sent");
-          };
-          reader.readAsDataURL(blob);
-        };
-        voiceRecorder.start();
-        button.classList.add("recording");
-        button.textContent = "Stop";
-      } catch (error) {
-        addMessage("System", "Microphone permission is required for voice notes.");
-      }
-    });
   }
 
   async function switchCamera() {
@@ -942,11 +876,6 @@ window.addSystemMessage = (text) => addMessage("System", text);
 
   socket.on("message-delivered", () => addChatStatus("Delivered"));
   socket.on("message-seen", () => addChatStatus("Seen"));
-  socket.on("voice-note", (payload) => {
-    if (!payload?.audio) return;
-    addVoiceMessage(payload.from?.name || "Match", payload.audio, payload.mimeType, false);
-    socket.emit("message-seen", { messageId: payload.id || "" });
-  });
   socket.on("chat-message", (payload) => {
     if (payload?.id) socket.emit("message-seen", { messageId: payload.id });
   });
@@ -962,10 +891,8 @@ window.addSystemMessage = (text) => addMessage("System", text);
   });
 
   document.addEventListener("DOMContentLoaded", () => {
-    createVoiceButton();
     createVideoTooling();
   });
-  createVoiceButton();
   createVideoTooling();
 
   const nativeCreatePeerConnection = createPeerConnection;
