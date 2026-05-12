@@ -1,0 +1,317 @@
+/* BLACK KNIGHT live cinematic override */
+:root {
+  color-scheme: dark;
+  --bk-bg: #050508;
+  --bk-panel: rgba(15, 23, 42, 0.72);
+  --bk-cyan: #00f0ff;
+  --bk-purple: #8b5cf6;
+  --bk-text: #f8fbff;
+  --bk-muted: rgba(226, 232, 240, 0.72);
+  --bk-line: rgba(0, 240, 255, 0.22);
+  --bk-glow: 0 0 32px rgba(0, 240, 255, 0.22), 0 0 78px rgba(139, 92, 246, 0.14);
+}
+
+html,
+body {
+  background: #050508 !important;
+}
+
+body {
+  color: var(--bk-text) !important;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(0, 240, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 92% 2%, rgba(139, 92, 246, 0.23), transparent 35%),
+    radial-gradient(circle at 50% 110%, rgba(139, 92, 246, 0.15), transparent 42%),
+    linear-gradient(145deg, #050508, #070b14 48%, #14091f) !important;
+  overflow-x: hidden;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to bottom, #000, transparent 86%);
+}
+
+.panel,
+.intro-panel,
+.chat-panel,
+.feature-card,
+.feature-chat,
+.confession-form,
+.admin-card,
+.feedback-card {
+  border: 1px solid var(--bk-line) !important;
+  border-radius: 28px !important;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(7, 11, 20, 0.72)) !important;
+  box-shadow: var(--bk-glow), 0 28px 90px rgba(0, 0, 0, 0.48) !important;
+  backdrop-filter: blur(22px);
+}
+
+.intro-panel,
+.chat-panel,
+.feature-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.intro-panel::before,
+.chat-panel::before,
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), transparent 32%, rgba(0, 240, 255, 0.07));
+}
+
+.intro-panel > *,
+.chat-panel > *,
+.feature-card > * {
+  position: relative;
+}
+
+.topbar {
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 240, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(5, 5, 8, 0.36);
+  backdrop-filter: blur(16px);
+}
+
+.brand,
+h1,
+h2 {
+  color: #fff !important;
+}
+
+.brand-logo,
+.hero-logo {
+  border-color: rgba(0, 240, 255, 0.56) !important;
+  box-shadow: 0 0 26px rgba(0, 240, 255, 0.32), 0 0 72px rgba(139, 92, 246, 0.16) !important;
+}
+
+.brand-mark {
+  color: #061018 !important;
+  background: linear-gradient(135deg, var(--bk-cyan), var(--bk-purple)) !important;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.42) !important;
+}
+
+.intro-copy h1 {
+  max-width: 9ch;
+  font-size: clamp(3.3rem, 14vw, 7.8rem) !important;
+  line-height: 0.86 !important;
+  letter-spacing: -0.08em !important;
+  color: transparent !important;
+  background: linear-gradient(180deg, #fff 0%, #c7f7ff 52%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.eyebrow {
+  color: var(--bk-cyan) !important;
+  letter-spacing: 0.18em !important;
+  text-shadow: 0 0 22px rgba(0, 240, 255, 0.46);
+  animation: bkPulseText 2.8s ease-in-out infinite;
+}
+
+.intro-copy p:last-child,
+label,
+.field-group > span,
+.auth-status,
+.row-detail,
+.room-code,
+.empty-state,
+.feature-card p {
+  color: var(--bk-muted) !important;
+}
+
+.live-stats {
+  gap: 12px !important;
+}
+
+.live-stats article,
+.live-stats span {
+  border: 1px solid rgba(0, 240, 255, 0.2) !important;
+  border-radius: 22px !important;
+  padding: 16px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+}
+
+.live-stats strong {
+  color: var(--bk-cyan) !important;
+  font-size: clamp(1.55rem, 7vw, 2.6rem) !important;
+  text-shadow: 0 0 24px rgba(0, 240, 255, 0.48);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  border-color: rgba(0, 240, 255, 0.2) !important;
+  border-radius: 20px !important;
+  color: #fff !important;
+  background: rgba(2, 6, 23, 0.72) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--bk-cyan) !important;
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.14), 0 0 30px rgba(0, 240, 255, 0.18) !important;
+}
+
+.segmented label,
+.mood-grid label,
+.call-controls button,
+.secondary-link,
+.row-action,
+.filter-tabs button,
+.room-pill,
+.btn-icon {
+  border: 1px solid rgba(0, 240, 255, 0.18) !important;
+  border-radius: 20px !important;
+  color: #dbeafe !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.segmented label:hover,
+.mood-grid label:hover,
+.call-controls button:hover,
+.secondary-link:hover,
+.room-pill:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 240, 255, 0.58) !important;
+  box-shadow: 0 18px 48px rgba(0, 240, 255, 0.14) !important;
+}
+
+.segmented label:has(input:checked),
+.mood-grid label:has(input:checked),
+#cameraBtn.active,
+#micBtn.active,
+.filter-tabs button.active,
+.room-pill.active {
+  color: #041018 !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--bk-cyan), var(--bk-purple)) !important;
+  box-shadow: 0 22px 70px rgba(0, 240, 255, 0.24) !important;
+}
+
+.primary-action,
+.admin-btn,
+.chat-form button,
+.feedback-form button {
+  color: #041018 !important;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: linear-gradient(135deg, var(--bk-cyan), var(--bk-purple)) !important;
+  box-shadow: 0 20px 64px rgba(0, 240, 255, 0.26), 0 0 78px rgba(139, 92, 246, 0.18) !important;
+}
+
+.feature-docks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.feature-card {
+  min-height: 132px;
+  padding: 18px !important;
+  text-decoration: none;
+}
+
+.feature-card span {
+  display: block;
+  color: var(--bk-cyan);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feature-card strong {
+  display: block;
+  margin-top: 18px;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+.messages {
+  border-color: rgba(0, 240, 255, 0.18) !important;
+  border-radius: 24px !important;
+  background: rgba(2, 6, 23, 0.54) !important;
+}
+
+.message {
+  border: 1px solid rgba(0, 240, 255, 0.14);
+  border-radius: 22px !important;
+  color: #f8fbff;
+  background: rgba(15, 23, 42, 0.78) !important;
+  animation: bkMessageIn 260ms ease both;
+}
+
+.message.mine {
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(139, 92, 246, 0.18) !important;
+}
+
+@keyframes bkPulseText {
+  0%, 100% { opacity: 0.7; text-shadow: 0 0 0 rgba(0, 240, 255, 0); }
+  50% { opacity: 1; text-shadow: 0 0 24px rgba(0, 240, 255, 0.48); }
+}
+
+@keyframes bkMessageIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 720px) {
+  .app-shell,
+  .start-shell,
+  .app-shell.in-room {
+    width: calc(100% - 20px) !important;
+    margin: 10px auto !important;
+  }
+
+  .intro-panel,
+  .chat-panel,
+  .panel {
+    border-radius: 24px !important;
+    padding: 18px !important;
+  }
+
+  .topbar {
+    border-radius: 24px;
+    align-items: flex-start;
+  }
+
+  .intro-copy {
+    margin: 34px 0 24px !important;
+  }
+
+  .intro-copy h1 {
+    font-size: clamp(3.5rem, 18vw, 5.6rem) !important;
+  }
+
+  .live-stats,
+  .feature-docks {
+    grid-template-columns: 1fr !important;
+  }
+
+  .segmented,
+  .mood-grid,
+  .call-controls,
+  .chat-panel.chat-mode .call-controls {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
